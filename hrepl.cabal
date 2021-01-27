@@ -27,6 +27,7 @@ library
   exposed-modules:
       Echo
       Lib
+      StringCalc
   other-modules:
       Paths_hrepl
   hs-source-dirs:
@@ -34,6 +35,7 @@ library
   ghc-options: -Wall
   build-depends:
       base >=4.7 && <5
+    , parsec
   default-language: Haskell2010
 
 executable hrepl-exe
@@ -46,6 +48,7 @@ executable hrepl-exe
   build-depends:
       base >=4.7 && <5
     , hrepl
+    , parsec
   default-language: Haskell2010
 
 test-suite test
@@ -53,6 +56,7 @@ test-suite test
   main-is: Spec.hs
   other-modules:
       EchoSpec
+      StringCalcSpec
       Paths_hrepl
   hs-source-dirs:
       test
@@ -62,4 +66,5 @@ test-suite test
     , hrepl
     , hspec
     , hspec-discover
+    , parsec
   default-language: Haskell2010

@@ -1,8 +1,7 @@
 module Main where
 
 import           Control.Monad (unless)
-import           Echo          (eval)
-import           Lib
+import           StringCalc    (eval)
 import           System.IO
 
 main :: IO ()

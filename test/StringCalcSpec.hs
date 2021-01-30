@@ -3,26 +3,30 @@ module StringCalcSpec where
 import           Test.Hspec
 
 import           Control.Monad
+import           Data.Map.Strict as Map
 import           StringCalc
 import           Text.Printf
 
 testSuites =
-  [ ("simple expressions",         [ ("1", "1")
-                                   , ("", "Invalid input")
-                                   , ("2l", "Invalid input")
+  [ ("simple expressions",         [ ((Map.empty, "1"),       (Map.empty, "1"))
+                                   , ((Map.empty, ""),        (Map.empty, "Invalid input"))
+                                   , ((Map.empty, "2l"),      (Map.empty, "Invalid input"))
                                    ])
-  , ("single binary expressions",  [ ("1+1", "2")
-                                   , ("3+1", "4")
-                                   , ("3-1", "2")
-                                   , ("3-1", "2")
-                                   , ("2*2", "4")
-                                   , ("4/2", "2")
+  , ("single binary expressions",  [ ((Map.empty, "1+1"),     (Map.empty, "2"))
+                                   , ((Map.empty, "3+1"),     (Map.empty, "4"))
+                                   , ((Map.empty, "3-1"),     (Map.empty, "2"))
+                                   , ((Map.empty, "3-1"),     (Map.empty, "2"))
+                                   , ((Map.empty, "2*2"),     (Map.empty, "4"))
+                                   , ((Map.empty, "4/2"),     (Map.empty, "2"))
                                    ])
-  , ("unary expressions",          [ ("-1", "-1") ])
-  , ("complex binary expressions", [ ("-1", "-1")
-                                   , ("3+2*2", "7")
-                                   , ("(3+2)*2", "10")
-                                   , (" (      3+ 2   ) * 2   ", "10")
+  , ("unary expressions",          [ ((Map.empty, "-1"),      (Map.empty, "-1")) ])
+  , ("complex binary expressions", [ ((Map.empty, "-1"),      (Map.empty, "-1"))
+                                   , ((Map.empty, "3+2*2"),   (Map.empty, "7"))
+                                   , ((Map.empty, "(3+2)*2"), (Map.empty, "10"))
+                                   , ((Map.empty, " (      3+ 2   ) * 2   "), (Map.empty, "10"))
+                                   ])
+  , ("variables",                  [ ((Map.empty, "let x = 12"),       (fromList [("x", 12)], "12"))
+                                   , ((fromList [("x", 12)], "x / 4"), (fromList [("x", 12)], "3"))
                                    ])
   ]
 
@@ -31,16 +35,6 @@ spec = do
   describe "String calculator" $ do
     forM_ testSuites $ \ (suiteName, datasets) ->
       describe suiteName $ forM_ datasets $ \ (input, result) ->
-        it (printf "should return %s when '%s' passed in" result input) $ do
-          eval input `shouldBe` result
-
-    describe "Expression evaluation" $ do
-      it "should return 1 for Int 1" $ do
-        evalE (IntE 1) `shouldBe` 1
-
-      it "should return 4 for AddE (IntE 1) (IntE 3)" $ do
-        evalE (AddE (IntE 1) (IntE 3)) `shouldBe` 4
-
-      it "should return 12 for MulE (IntE 4) (IntE 3)" $ do
-        evalE (MulE (IntE 4) (IntE 3)) `shouldBe` 12
+        it (printf "should return %s when '%s' passed in" (show result) (show input)) $ do
+          uncurry eval input `shouldBe` result
 

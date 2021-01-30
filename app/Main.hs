@@ -1,18 +1,19 @@
 module Main where
 
-import           Control.Monad (unless)
-import           StringCalc    (eval)
+import           Control.Monad   (unless)
+import           Data.Map.Strict as Map
+import           StringCalc      (eval)
 import           System.IO
 
 main :: IO ()
-main = do
-  input <- read'
-  unless (input == ":quit")
-       $ print' (eval' input)
-      >> main
-
-eval' :: String -> String
-eval' = eval
+main = loop Map.empty
+  where
+    loop state = do
+      input <- read'
+      unless (input == ":quit") $
+        let (state', r) = eval state input in
+          print' r
+          >> loop state'
 
 read' :: IO String
 read' = putStr "hrepl> "

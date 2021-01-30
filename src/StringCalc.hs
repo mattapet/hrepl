@@ -12,6 +12,7 @@ data Expr =
   | MinE Expr Expr
   | MulE Expr Expr
   | DivE Expr Expr
+  deriving (Show, Eq)
 
 evalE :: Expr -> Int
 evalE (IntE n)       = n

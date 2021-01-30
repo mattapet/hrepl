@@ -2,53 +2,37 @@ module StringCalcSpec where
 
 import           Test.Hspec
 
+import           Control.Monad
 import           StringCalc
+import           Text.Printf
+
+testSuites =
+  [ ("simple expressions",         [ ("1", "1")
+                                   , ("", "Invalid input")
+                                   , ("2l", "Invalid input")
+                                   ])
+  , ("single binary expressions",  [ ("1+1", "2")
+                                   , ("3+1", "4")
+                                   , ("3-1", "2")
+                                   , ("3-1", "2")
+                                   , ("2*2", "4")
+                                   , ("4/2", "2")
+                                   ])
+  , ("unary expressions",          [ ("-1", "-1") ])
+  , ("complex binary expressions", [ ("-1", "-1")
+                                   , ("3+2*2", "7")
+                                   , ("(3+2)*2", "10")
+                                   , (" (      3+ 2   ) * 2   ", "10")
+                                   ])
+  ]
 
 spec :: Spec
 spec = do
   describe "String calculator" $ do
-    describe "Simple expressions" $ do
-      it "should return 1 when 1 passed in" $ do
-        eval "1" `shouldBe` "1"
-
-      it "should return 'Invalid input' on empty string" $ do
-        eval "" `shouldBe` "Invalid input"
-
-    describe "single binary expressions" $ do
-      it "should return 2 when '1+1' passed in" $ do
-        eval "1+1" `shouldBe` "2"
-
-      it "should return 4 when '3+1' passed in" $ do
-        eval "3+1" `shouldBe` "4"
-
-      it "should return 2 when '3-1' passed in" $ do
-        eval "3-1" `shouldBe` "2"
-
-      it "should return 2 when '3-1' passed in" $ do
-        eval "3-1" `shouldBe` "2"
-
-      it "should return 4 when '2*2' passed in" $ do
-        eval "2*2" `shouldBe` "4"
-
-      it "should return 2 when '4/2' passed in" $ do
-        eval "4/2" `shouldBe` "2"
-
-    describe "unary expressions" $ do
-      it "should return -1 when '-1' passed in" $ do
-        eval "-1" `shouldBe` "-1"
-
-    describe "complex binary expressions" $ do
-      it "should return 7 when '3+2*2' passed in" $ do
-        eval "3+2*2" `shouldBe` "7"
-
-      it "should return 10 when '(3+2)*2' passed in" $ do
-        eval "(3+2)*2" `shouldBe` "10"
-
-      it "should ignore spaces" $ do
-        eval " (      3+ 2   ) * 2   " `shouldBe` "10"
-
-      it "should consume the entire input" $ do
-        eval " 2l" `shouldBe` "Invalid input"
+    forM_ testSuites $ \ (suiteName, datasets) ->
+      describe suiteName $ forM_ datasets $ \ (input, result) ->
+        it (printf "should return %s when '%s' passed in" result input) $ do
+          eval input `shouldBe` result
 
     describe "Expression evaluation" $ do
       it "should return 1 for Int 1" $ do

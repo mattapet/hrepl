@@ -2,7 +2,7 @@ module StringCalcSpec where
 
 import           Test.Hspec
 
-import           StringCalc (eval)
+import           StringCalc
 
 spec :: Spec
 spec = do
@@ -49,3 +49,14 @@ spec = do
 
       it "should consume the entire input" $ do
         eval " 2l" `shouldBe` "Invalid input"
+
+    describe "Expression evaluation" $ do
+      it "should return 1 for Int 1" $ do
+        evalE (IntE 1) `shouldBe` 1
+
+      it "should return 4 for AddE (IntE 1) (IntE 3)" $ do
+        evalE (AddE (IntE 1) (IntE 3)) `shouldBe` 4
+
+      it "should return 12 for MulE (IntE 4) (IntE 3)" $ do
+        evalE (MulE (IntE 4) (IntE 3)) `shouldBe` 12
+

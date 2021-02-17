@@ -1,10 +1,11 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TupleSections    #-}
 
-module StringCalc (eval) where
+module StringCalc (eval, StateT) where
 
-import           Data.Bifunctor        (second)
+import           Data.StateT
 import           Data.Functor
+import           Data.Bifunctor (first)
 import           Data.Functor.Identity
 import           Data.Map.Strict       as Map
 import           Text.Parsec
@@ -20,24 +21,32 @@ data Expr =
   | IdE  String
   deriving (Show, Eq)
 
-evalBinOp :: (Int -> Int -> Int) -> Map String Int -> Expr -> Expr -> Either String (Map String Int, Int)
-evalBinOp op s lhs rhs = do
-  (s', l)  <- evalE s lhs
-  (s'', r) <- evalE s' rhs
-  return (s'', l `op` r)
+-- Evaluation
 
-evalE :: Map String Int -> Expr -> Either String (Map String Int, Int)
-evalE s (IntE n)        = Right (s, n)
-evalE s (AddE lhs rhs)  = evalBinOp (+)   s lhs rhs
-evalE s (MinE lhs rhs)  = evalBinOp (-)   s lhs rhs
-evalE s (MulE lhs rhs)  = evalBinOp (*)   s lhs rhs
-evalE s (DivE lhs rhs)  = evalBinOp (div) s lhs rhs
-evalE s (LetE name val) = do
-                (s', r) <- evalE s val
-                return (insert name r s', r)
-evalE s (IdE x)         = case s !? x of
-            Just value -> Right (s, value)
-            Nothing    -> Left (printf "Variable '%s' is not defined" x)
+type EvalState a = StateT (Map String Int) (Either String) a
+
+evalBinOp :: (Int -> Int -> Int) -> Expr -> Expr -> EvalState Int
+evalBinOp op lhs rhs = do
+  l <- evalE lhs
+  r <- evalE rhs
+  return $ l `op` r
+
+evalE :: Expr -> EvalState Int
+evalE (IntE n)   = pure n
+evalE (AddE l r) = evalBinOp (+) l r
+evalE (MinE l r) = evalBinOp (-) l r
+evalE (MulE l r) = evalBinOp (*) l r
+evalE (DivE l r) = evalBinOp div l r
+evalE (LetE name val) = do
+  r <- evalE val
+  s <- get
+  put (insert name r s) >> return r
+evalE (IdE x) = get >>= liftF . unwrapValue . (!? x)
+  where
+    unwrapValue (Just value) = Right value
+    unwrapValue Nothing = Left (printf "Variable '%s' is not defined" x)
+
+-- Parsing
 
 digits :: ParsecT String u Identity String
 digits = many1 digit
@@ -75,8 +84,9 @@ mulop   =   spaces *> char '*' <* spaces $> MulE
 parseE  :: String -> Either ParseError Expr
 parseE  = parse (expr <* eof) ""
 
-eval :: Map String Int -> String -> (Map String Int, String)
-eval s a = either (s,) (second show) $ evalE' $ parseE a
+eval :: Map String Int -> String -> (String, Map String Int)
+eval s a = either (,s) (first show) $ evalE' $ parseE a
   where
-    evalE' (Right e) = evalE s e
+    evalE' :: Either a Expr -> Either String (Int, Map String Int)
+    evalE' (Right e) = runStateT (evalE e) s
     evalE' (Left _)  = Left "Invalid input"

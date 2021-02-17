@@ -11,7 +11,7 @@ main = loop Map.empty
     loop state = do
       input <- read'
       unless (input == ":quit") $
-        let (state', r) = eval state input in
+        let (r, state') = eval state input in
           print' r
           >> loop state'
 

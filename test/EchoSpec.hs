@@ -1,7 +1,7 @@
 module EchoSpec where
 
-import Echo (eval)
-import Test.Hspec
+import           Echo                           ( eval )
+import           Test.Hspec
 
 spec :: Spec
 spec = do

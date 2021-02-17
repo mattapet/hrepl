@@ -1,24 +1,27 @@
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE TupleSections    #-}
+{-# LANGUAGE TupleSections #-}
 
-module StringCalc (eval, StateT) where
+module StringCalc
+  ( eval
+  , StateT
+  ) where
 
-import           Data.StateT
+import           Data.Bifunctor                 ( first )
 import           Data.Functor
-import           Data.Bifunctor (first)
 import           Data.Functor.Identity
-import           Data.Map.Strict       as Map
+import           Data.Map.Strict               as Map
+import           Data.StateT
 import           Text.Parsec
-import           Text.Printf           (printf)
+import           Text.Printf                    ( printf )
 
-data Expr =
-    IntE Int
+data Expr
+  = IntE Int
   | AddE Expr Expr
   | MinE Expr Expr
   | MulE Expr Expr
   | DivE Expr Expr
   | LetE String Expr
-  | IdE  String
+  | IdE String
   deriving (Show, Eq)
 
 -- Evaluation
@@ -32,11 +35,11 @@ evalBinOp op lhs rhs = do
   return $ l `op` r
 
 evalE :: Expr -> EvalState Int
-evalE (IntE n)   = pure n
-evalE (AddE l r) = evalBinOp (+) l r
-evalE (MinE l r) = evalBinOp (-) l r
-evalE (MulE l r) = evalBinOp (*) l r
-evalE (DivE l r) = evalBinOp div l r
+evalE (IntE n       ) = pure n
+evalE (AddE l    r  ) = evalBinOp (+) l r
+evalE (MinE l    r  ) = evalBinOp (-) l r
+evalE (MulE l    r  ) = evalBinOp (*) l r
+evalE (DivE l    r  ) = evalBinOp div l r
 evalE (LetE name val) = do
   r <- evalE val
   s <- get
@@ -44,7 +47,7 @@ evalE (LetE name val) = do
 evalE (IdE x) = get >>= liftF . unwrapValue . (!? x)
   where
     unwrapValue (Just value) = Right value
-    unwrapValue Nothing = Left (printf "Variable '%s' is not defined" x)
+    unwrapValue Nothing      = Left (printf "Variable '%s' is not defined" x)
 
 -- Parsing
 
@@ -54,39 +57,42 @@ digits = many1 digit
 identifier :: ParsecT String u Identity String
 identifier = spaces *> many1 letter <* spaces
 
-integer  :: ParsecT String u Identity Expr
-integer  =            IntE . read <$> do                       spaces *> digits <* spaces
-         <|> IntE . negate . read <$> do spaces *> char '-' *> spaces *> digits <* spaces
+integer :: ParsecT String u Identity Expr
+integer = IntE . read <$> positive <|> IntE . negate . read <$> negative
+  where
+    positive = spaces *> digits <* spaces
+    negative = spaces *> char '-' *> spaces *> digits <* spaces
 
-parens   :: Stream s m Char => ParsecT s u m a -> ParsecT s u m a
+parens :: Stream s m Char => ParsecT s u m a -> ParsecT s u m a
 parens p = char '(' *> p <* char ')'
 
-expr     :: ParsecT String u Identity Expr
-expr     = spaces *> (do let' <|> (term `chainl1` addop)) <* spaces
+expr :: ParsecT String u Identity Expr
+expr = spaces *> (let' <|> (term `chainl1` addop)) <* spaces
 
-term     :: ParsecT String u Identity Expr
-term     = spaces *> factor `chainl1` mulop <* spaces
+term :: ParsecT String u Identity Expr
+term = spaces *> factor `chainl1` mulop <* spaces
 
-factor   :: ParsecT String u Identity Expr
-factor   = spaces *> (do parens expr <|> (IdE <$> identifier) <|> integer) <* spaces
+factor :: ParsecT String u Identity Expr
+factor = spaces *> factor' <* spaces
+  where factor' = parens expr <|> (IdE <$> identifier) <|> integer
 
-let'    :: ParsecT String u Identity Expr
-let'    = LetE <$> (spaces *> string "let" *> identifier <* char '=') <*> expr
+let' :: ParsecT String u Identity Expr
+let' = LetE <$> (spaces *> string "let" *> identifier <* char '=') <*> expr
 
-addop   :: ParsecT String u Identity (Expr -> Expr -> Expr)
-addop   =   spaces *> char '+' <* spaces $> AddE
-        <|> spaces *> char '-' <* spaces $> MinE
+addop :: ParsecT String u Identity (Expr -> Expr -> Expr)
+addop =
+  spaces *> char '+' <* spaces $> AddE <|> spaces *> char '-' <* spaces $> MinE
 
-mulop   :: ParsecT String u Identity (Expr -> Expr -> Expr)
-mulop   =   spaces *> char '*' <* spaces $> MulE
-        <|> spaces *> char '/' <* spaces $> DivE
+mulop :: ParsecT String u Identity (Expr -> Expr -> Expr)
+mulop =
+  spaces *> char '*' <* spaces $> MulE <|> spaces *> char '/' <* spaces $> DivE
 
-parseE  :: String -> Either ParseError Expr
-parseE  = parse (expr <* eof) ""
+parseE :: String -> Either ParseError Expr
+parseE = parse (expr <* eof) ""
 
 eval :: Map String Int -> String -> (String, Map String Int)
-eval s a = either (,s) (first show) $ evalE' $ parseE a
+eval s a = either (, s) (first show) $ evalE' $ parseE a
   where
     evalE' :: Either a Expr -> Either String (Int, Map String Int)
     evalE' (Right e) = runStateT (evalE e) s
-    evalE' (Left _)  = Left "Invalid input"
+    evalE' (Left  _) = Left "Invalid input"

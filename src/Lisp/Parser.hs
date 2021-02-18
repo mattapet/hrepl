@@ -21,10 +21,15 @@ integer = positive <|> negative
     positive = read <$> many1 digit
     negative = negate <$> (char '-' *> positive)
 
--- Expression parsers
-
 identifier :: ParsecT String u Identity String
 identifier = many1 (letter <|> digit <|> oneOf "-+*/%")
+
+-- keywords
+
+defunKw :: ParsecT String u Identity String
+defunKw = string "defun"
+
+-- Expression parsers
 
 atom :: ParsecT String u Identity Expr
 atom = foldl1 (<|>) (try <$> atomParsers) -- <?> "Expected atom"
@@ -43,12 +48,13 @@ application = parens $ Application <$> atom <*> many expr
 
 function :: ParsecT String u Identity Expr
 function =
-  parens $ FuncDef <$> (string "defun" *> space *> identifier) <*> args <*> expr
+  parens $ FuncDef <$> (defunKw *> space *> identifier) <*> args <*> expr
   where
     args = spaces *> brackets (many (spaces *> identifier <* spaces)) <* spaces
 
 expr :: ParsecT String u Identity Expr
-expr = spaces *> (try atom <|> try application <|> try function) <* spaces
+expr = spaces *> foldl1 (<|>) (try <$> exprParsers) <* spaces
+  where exprParsers = [atom, application, function]
 
 parseExpr :: String -> Either String Expr
 parseExpr = mapLeft show . parse expr ""

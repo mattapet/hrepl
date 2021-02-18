@@ -64,7 +64,6 @@ test-suite test
       Lisp.Specs.CoreSpec
       Lisp.Specs.ParserSpec
       StringCalcSpec
-      TestSpec
       Paths_hrepl
   hs-source-dirs:
       test

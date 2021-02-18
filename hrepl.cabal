@@ -28,6 +28,7 @@ library
       Data.StateT
       Echo
       Lib
+      Lisp.Core
       StringCalc
   other-modules:
       Paths_hrepl
@@ -59,6 +60,7 @@ test-suite test
   main-is: Spec.hs
   other-modules:
       EchoSpec
+      Lisp.Specs.CoreSpec
       StringCalcSpec
       TestSpec
       Paths_hrepl

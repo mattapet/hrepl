@@ -11,7 +11,7 @@ import           Test.Hspec
 
 spec :: Spec
 spec = do
-  describe "parsing atoms" $ do
+  describe "atoms" $ do
     let testSuites =
           [ ("nil"             , Nil)
           , ("()"              , Nil)
@@ -26,13 +26,13 @@ spec = do
       it (printf "should parse %s to %s" (show input) (show result)) $ do
         parseExpr input `shouldBe` Right result
 
-  describe "parsing operators" $ do
+  describe "operators" $ do
     let testSuites = ["+", "-", "*", "/", "%"]
     forM_ testSuites $ \operator ->
       it (printf "should parse operator %s" (show operator)) $ do
         parseExpr operator `shouldBe` Right (Identifier operator)
 
-  describe "parsing applications" $ do
+  describe "applications" $ do
     let
       testSuites =
         [ ("(a)"    , Application (Identifier "a") [])
@@ -44,6 +44,20 @@ spec = do
           )
         ]
 
+    forM_ testSuites $ \(input, result) ->
+      it (printf "should parse %s to %s" (show input) (show result)) $ do
+        parseExpr input `shouldBe` Right result
+
+
+  describe "functions" $ do
+    let testSuites =
+          [ ( "(defun f [a b] (+ a b))"
+            , FuncDef
+              "f"
+              ["a", "b"]
+              (Application (Identifier "+") [Identifier "a", Identifier "b"])
+            )
+          ]
     forM_ testSuites $ \(input, result) ->
       it (printf "should parse %s to %s" (show input) (show result)) $ do
         parseExpr input `shouldBe` Right result

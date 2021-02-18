@@ -4,13 +4,14 @@ data Expr =
     Nil
   | Boolean Bool
   | Number Integer
-  | Variable String
+  | Identifier String
   | Application Expr [Expr]
+  deriving (Eq, Show)
 
-instance Show Expr where
-  show Nil                = "nil"
-  show (Boolean  True   ) = "true"
-  show (Boolean  False  ) = "false"
-  show (Number   x      ) = show x
-  show (Variable n      ) = n
-  show (Application x xs) = "(" ++ unwords (show <$> (x : xs)) ++ ")"
+format :: Expr -> String
+format Nil                = "nil"
+format (Boolean    True ) = "true"
+format (Boolean    False) = "false"
+format (Number     x    ) = show x
+format (Identifier n    ) = n
+format (Application x xs) = "(" ++ unwords (format <$> (x : xs)) ++ ")"

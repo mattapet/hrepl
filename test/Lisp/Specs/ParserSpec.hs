@@ -26,6 +26,12 @@ spec = do
       it (printf "should parse %s to %s" (show input) (show result)) $ do
         parseExpr input `shouldBe` Right result
 
+  describe "parsing operators" $ do
+    let testSuites = ["+", "-", "*", "/", "%"]
+    forM_ testSuites $ \operator ->
+      it (printf "should parse operator %s" (show operator)) $ do
+        parseExpr operator `shouldBe` Right (Identifier operator)
+
   describe "parsing applications" $ do
     let
       testSuites =

@@ -1,4 +1,6 @@
-module Lisp.Parser where
+module Lisp.Parser
+  ( parseExpr
+  ) where
 
 import           Data.Functor
 import           Data.Functor.Identity
@@ -12,7 +14,7 @@ integer = Number <$> (positive <|> negative)
     negative = negate <$> (char '-' *> positive)
 
 identifier :: ParsecT String u Identity Expr
-identifier = Identifier <$> many1 (letter <|> digit <|> oneOf "-+")
+identifier = Identifier <$> many1 (letter <|> digit <|> oneOf "-+*/%")
 
 atom :: ParsecT String u Identity Expr
 atom = foldl1 (<|>) $ try <$> atomParsers

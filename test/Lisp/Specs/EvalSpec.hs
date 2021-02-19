@@ -1,6 +1,7 @@
 module Lisp.Specs.EvalSpec where
 
 import           Control.Monad                  ( forM_ )
+import           Data.StateT
 import           Lisp.Core
 import           Lisp.Eval                      ( eval )
 import           Test.Hspec
@@ -18,7 +19,7 @@ spec = do
           ]
     forM_ testSuite $ \(env, input, result) ->
       it (printf "should evaluate %s to %s" (show input) (show result)) $ do
-        eval env input `shouldBe` result
+        (fst <$> runStateT (eval input) env) `shouldBe` result
 
   describe "primitives application" $ do
     let makeApp name args = Application (Identifier name) args
@@ -121,4 +122,41 @@ spec = do
     forM_ testSuites $ \(desc, testSuite) -> describe desc $ do
       forM_ testSuite $ \(env, input, result) ->
         it (printf "should evaluate %s to %s" (show input) (show result)) $ do
-          eval env input `shouldBe` result
+          (fst <$> runStateT (eval input) env) `shouldBe` result
+
+  describe "functions" $ do
+    let makeApp name args = Application (Identifier name) args
+    let
+      testSuit =
+        [ ( []
+          , FuncDef "id" ["a"] (Identifier "a")
+          , Right
+            ( Func [] ["a"] (Identifier "a")
+            , [("id", Func [] ["a"] (Identifier "a"))]
+            )
+          )
+        , ( [("id", Func [] ["a"] (Identifier "a"))]
+          , makeApp "id" [Number 1]
+          , Right (Number 1, [("id", Func [] ["a"] (Identifier "a"))])
+          )
+        , ( [ ( "add"
+              , Func []
+                     ["a", "b"]
+                     (makeApp "+" [Identifier "a", Identifier "b"])
+              )
+            ]
+          , makeApp "add" [Number 1, Number 2]
+          , Right
+            ( Number 3
+            , [ ( "add"
+                , Func []
+                       ["a", "b"]
+                       (makeApp "+" [Identifier "a", Identifier "b"])
+                )
+              ]
+            )
+          )
+        ]
+    forM_ testSuit $ \(env, input, result) ->
+      it (printf "should evaluate %s to %s" (show input) (show result)) $ do
+        runStateT (eval input) env `shouldBe` result

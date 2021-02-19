@@ -3,6 +3,7 @@
 module Lisp.Primitives
   ( primitives
   , lookupPrimitive
+  , Primitive
   ) where
 
 import           Data.List                      ( find )

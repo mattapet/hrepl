@@ -11,6 +11,8 @@ data Expr =
   | FuncDef Name [Name] Expr
   deriving (Eq, Show)
 
+type Environment = [(Name, Expr)]
+
 format :: Expr -> String
 format Nil                      = "nil"
 format (Boolean    True       ) = "true"

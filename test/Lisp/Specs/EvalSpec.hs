@@ -25,7 +25,12 @@ spec = do
     let makeApp name args = Application (Identifier name) args
     let
       testSuites =
-        [ ( "numeric operations"
+        [ ( "atom applications"
+          , [ ([], Application Nil []       , Left "Type is not callable")
+            , ([], Application (Number 2) [], Left "Type is not callable")
+            ]
+          )
+        , ( "numeric operations"
           , [ ([], makeApp "+" [Number 1, Number 2]          , Right $ Number 3)
             , ([], makeApp "-" [Number 4, Number 2]          , Right $ Number 2)
             , ([], makeApp "*" [Number 2, Number 2, Number 2], Right $ Number 8)
@@ -155,6 +160,15 @@ spec = do
                 )
               ]
             )
+          )
+        , ( [ ( "add"
+              , Func []
+                     ["a", "b"]
+                     (makeApp "+" [Identifier "a", Identifier "b"])
+              )
+            ]
+          , makeApp "add" [Number 1, Number 2, Number 3]
+          , Left "Invalid number of arguments provided. Expected 2, received 3"
           )
         ]
     forM_ testSuit $ \(env, input, result) ->

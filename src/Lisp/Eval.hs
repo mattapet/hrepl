@@ -1,6 +1,8 @@
 {-# LANGUAGE LambdaCase #-}
 
-module Lisp.Eval where
+module Lisp.Eval
+  ( eval
+  ) where
 
 import           Control.Applicative
 import           Data.StateT
@@ -8,48 +10,64 @@ import           Data.StateT
 import           Lisp.Core
 import           Lisp.Primitives
 
-lookupVariable :: Name
-               -> StateT Environment (Either String) (Either Primitive Expr)
+type Result a = StateT Environment (Either String) a
+
+-- Utility functions
+
+failWith :: String -> Result a
+failWith message = liftF $ Left message
+
+-- | Variable lookup retrieves a variable from the entire accessible context.
+--   I.e., current environment as right value, or one of the primitive functions
+--   as left value.
+lookupVariable :: Name -> Result (Either Primitive Expr)
 lookupVariable n = do
   env <- get
   maybeToState ((Right <$> lookupEnv n env) <|> (Left <$> lookupPrimitive n))
   where
     maybeToState = maybe unboundError return
-    unboundError = liftF $ Left $ "Found unbound variable '" ++ n ++ "'"
+    unboundError = failWith $ "Found unbound variable '" ++ n ++ "'"
 
-eval :: Expr -> StateT Environment (Either String) Expr
-eval val@Nil            = return val
-eval val@(Boolean    _) = return val
-eval val@(Number     _) = return val
-eval (    Identifier x) = do
-  var <- lookupVariable x
-  case var of
-    Left  _ -> return $ Identifier x
-    Right e -> eval e
+evaluateInContext :: Environment -> Expr -> Result Expr
+evaluateInContext context content = do
+  currentEnv <- get
+  result     <- put context >> eval content
+  put currentEnv >> return result
 
-eval (Application (Identifier op) xs) = do
-  var <- lookupVariable op
-  case var of
-    Left  prim                -> mapM eval xs >>= liftF . prim
-    Right (Func e' args body) -> evaluateInContext (e' ++ zip args xs) body
-    Right _                   -> undefined
+-- Evaluation
+
+eval :: Expr -> Result Expr
+-- Atoms
+eval val@Nil         = return val
+eval val@(Boolean _) = return val
+eval val@(Number  _) = return val
+eval val@Func{}      = return val
+eval (Identifier x)  = lookupVariable x >>= unpack
   where
-    evaluateInContext :: Environment
-                      -> Expr
-                      -> StateT Environment (Either String) Expr
-    evaluateInContext context content = do
-      currentEnv <- get
-      result     <- put context >> eval content
-      put currentEnv
-      return result
+    unpack (Left  _) = return $ Identifier x
+    unpack (Right e) = eval e
 
+-- Applications
+eval (Application x xs) = eval x >>= apply
+  where
+    apply (Identifier op) = lookupVariable op >>= \case
+      Left  prim -> mapM eval xs >>= liftF . prim
+      Right e    -> eval (Application e xs)
+    apply (Func e' args body) =
+      bindArguments e' args >>= flip evaluateInContext body
+    apply _ = failWith "Type is not callable"
+    bindArguments e args | length args == length xs = return $ e ++ zip args xs
+                         | otherwise = failWith $ invalidNumberOfArgs args
+    invalidNumberOfArgs args =
+      "Invalid number of arguments provided. Expected "
+        ++ show (length args)
+        ++ ", received "
+        ++ show (length xs)
 
+-- Function declaration
 eval (FuncDef name args body) = do
-  func <- captureFunctionContext
-  _    <- bindToVariable func
-  return func
+  func <- captureFunctionInContext
+  bindToVariable func >> return func
   where
-    captureFunctionContext = get >>= \env -> return $ Func env args body
+    captureFunctionInContext = get >>= \env -> return $ Func env args body
     bindToVariable f = get >>= put . (++ [(name, f)])
-
-eval _ = undefined

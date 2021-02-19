@@ -1,5 +1,7 @@
 module Lisp.Core where
 
+import           Data.List                      ( find )
+
 type Name = String
 
 data Expr =
@@ -12,6 +14,9 @@ data Expr =
   deriving (Eq, Show)
 
 type Environment = [(Name, Expr)]
+
+lookupEnv :: Name -> Environment -> Maybe Expr
+lookupEnv name = fmap snd . find ((== name) . fst)
 
 format :: Expr -> String
 format Nil                      = "nil"

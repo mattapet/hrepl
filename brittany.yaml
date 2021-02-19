@@ -5,7 +5,7 @@ conf_layout:
     contents: 3
   lconfig_allowSingleLineExportList: false
   lconfig_importColumn: 50
-  lconfig_hangingTypeSignature: false
+  lconfig_hangingTypeSignature: true
   lconfig_importAsColumn: 50
   lconfig_alignmentLimit: 30
   lconfig_allowHangingQuasiQuotes: true

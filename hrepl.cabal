@@ -29,7 +29,9 @@ library
       Echo
       Lib
       Lisp.Core
+      Lisp.Eval
       Lisp.Parser
+      Lisp.Primitives
       StringCalc
   other-modules:
       Paths_hrepl
@@ -62,6 +64,7 @@ test-suite test
   other-modules:
       EchoSpec
       Lisp.Specs.CoreSpec
+      Lisp.Specs.EvalSpec
       Lisp.Specs.ParserSpec
       StringCalcSpec
       Paths_hrepl

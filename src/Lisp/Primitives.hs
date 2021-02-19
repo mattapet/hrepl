@@ -23,6 +23,7 @@ primitives =
   , ("eq"  , eq)
   , ("null", null')
   , ("not" , not')
+  , ("if"  , if')
   , ("="   , makeBooleanBinOp "=" (==))
   , ("<"   , makeBooleanBinOp "<" (<))
   , ("<="  , makeBooleanBinOp "<=" (<=))
@@ -45,6 +46,14 @@ null' [Nil] = Right $ Boolean True
 null' [_  ] = Right $ Boolean False
 null' _ =
   Left "Invalid number of arguments. 'null' expects exactly one argument"
+
+if' :: [Expr] -> Either String Expr
+if' [Boolean True , then', _    ] = Right then'
+if' [Boolean False, _    , else'] = Right else'
+if' [_, _, _] =
+  Left "Invalid argument type. Condition must evaluate to Boolean"
+if' _ =
+  Left "Invalid number of arguments. 'if' expects exactly three arguments"
 
 makeBooleanBinOp :: Name
                  -> (Integer -> Integer -> Bool)

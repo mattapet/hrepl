@@ -97,6 +97,26 @@ spec = do
             , ([], makeApp ">=" [Number 2, Number 1], Right $ Boolean True)
             ]
           )
+        , ( "conditionals"
+          , [ ( []
+              , makeApp "if" [Boolean True, Number 1, Number 2]
+              , Right $ Number 1
+              )
+            , ( []
+              , makeApp "if" [Boolean False, Number 1, Number 2]
+              , Right $ Number 2
+              )
+            , ( []
+              , makeApp "if" [Number 1, Number 1, Number 2]
+              , Left "Invalid argument type. Condition must evaluate to Boolean"
+              )
+            , ( []
+              , makeApp "if" [Number 1, Number 1]
+              , Left
+                "Invalid number of arguments. 'if' expects exactly three arguments"
+              )
+            ]
+          )
         ]
     forM_ testSuites $ \(desc, testSuite) -> describe desc $ do
       forM_ testSuite $ \(env, input, result) ->

@@ -27,7 +27,7 @@ spec = do
         parseExpr input `shouldBe` Right result
 
   describe "operators" $ do
-    let testSuites = ["+", "-", "*", "/", "%"]
+    let testSuites = ["+", "-", "*", "/", "%", "=", "<", ">"]
     forM_ testSuites $ \operator ->
       it (printf "should parse operator %s" (show operator)) $ do
         parseExpr operator `shouldBe` Right (Identifier operator)

@@ -22,7 +22,7 @@ integer = positive <|> negative
     negative = negate <$> (char '-' *> positive)
 
 identifier :: ParsecT String u Identity String
-identifier = many1 (letter <|> digit <|> oneOf "-+*/%")
+identifier = many1 (letter <|> digit <|> oneOf "-+*/%=<>")
 
 -- keywords
 

@@ -1,7 +1,5 @@
 module Lisp.Core where
 
-import           Data.List                      ( find )
-
 type Name = String
 
 data Expr =
@@ -12,12 +10,31 @@ data Expr =
   | Application Expr [Expr]
   | FuncDef Name [Name] Expr
   | Func Environment [Name] Expr
-  deriving (Eq, Show)
+
+instance Show Expr where
+  show Nil                   = "Nil "
+  show (Boolean    x       ) = "Boolean " ++ show x
+  show (Number     x       ) = "Number " ++ show x
+  show (Identifier x       ) = "Identifier " ++ show x
+  show (Application op args) = "Application " ++ show op ++ " " ++ show args
+  show (FuncDef name args body) =
+    "FuncDef " ++ show name ++ " " ++ show args ++ " " ++ show body
+  show (Func _ args body) = "Func " ++ show args ++ " " ++ show body
+
+instance Eq Expr where
+  Nil            == Nil            = True
+  (Boolean    x) == (Boolean    y) = x == y
+  (Number     x) == (Number     y) = x == y
+  (Identifier x) == (Identifier y) = x == y
+  (Application xOp xArgs) == (Application yOp yArgs) =
+    xOp == yOp && xArgs == yArgs
+  (FuncDef xName xArgs xBody) == (FuncDef yName yArgs yBody) =
+    xName == yName && xArgs == yArgs && xBody == yBody
+  (Func _ xArgs xBody) == (Func _ yArgs yBody) =
+    xArgs == yArgs && xBody == yBody
+  _ == _ = False
 
 type Environment = [(Name, Expr)]
-
-lookupEnv :: Name -> Environment -> Maybe Expr
-lookupEnv name = fmap snd . find ((== name) . fst)
 
 format :: Expr -> String
 format Nil                = "nil"

@@ -23,13 +23,13 @@ failWith message = liftF $ Left message
 lookupVariable :: Name -> Result (Either Primitive Expr)
 lookupVariable n = do
   env <- get
-  maybeToState ((Right <$> lookupEnv n env) <|> (Left <$> lookupPrimitive n))
+  maybeToState ((Right <$> lookup n env) <|> (Left <$> lookup n primitives))
   where
     maybeToState = maybe unboundError return
     unboundError = failWith $ "Found unbound variable '" ++ n ++ "'"
 
-evaluateInContext :: Environment -> Expr -> Result Expr
-evaluateInContext context content = do
+evaluateInContext :: Expr -> Environment -> Result Expr
+evaluateInContext content context = do
   currentEnv <- get
   result     <- put context >> eval content
   put currentEnv >> return result
@@ -47,27 +47,41 @@ eval (Identifier x)  = lookupVariable x >>= unpack
     unpack (Left  _) = return $ Identifier x
     unpack (Right e) = eval e
 
+-- If
+
+eval (Application (Identifier "if") [cond', then', else']) =
+  eval cond' >>= \case
+    Boolean True -> eval then'
+    Boolean False -> eval else'
+    _ -> failWith "Invalid argument type. Condition must evaluate to Boolean"
+eval (Application (Identifier "if") _) =
+  failWith "Invalid number of arguments. 'if' expects exactly three arguments"
+
+
 -- Applications
-eval (Application x xs) = eval x >>= apply
+eval (Application (Identifier op) xs) = lookupVariable op >>= \case
+  Left prim -> do
+    args <- traverse eval xs
+    liftF $ prim args
+  Right e -> eval (Application e xs)
+
+eval (Application (Func e args body) xs) = bindArguments
+  >>= evaluateInContext body
   where
-    apply (Identifier op) = lookupVariable op >>= \case
-      Left  prim -> mapM eval xs >>= liftF . prim
-      Right e    -> eval (Application e xs)
-    apply (Func e' args body) =
-      bindArguments e' args >>= flip evaluateInContext body
-    apply _ = failWith "Type is not callable"
-    bindArguments e args | length args == length xs = return $ e ++ zip args xs
-                         | otherwise = failWith $ invalidNumberOfArgs args
-    invalidNumberOfArgs args =
+    bindArguments | length args == length xs = (++ e) . zip args <$> xs'
+                  | otherwise                = failWith invalidNumberOfArgs
+    xs' = traverse eval xs
+    invalidNumberOfArgs =
       "Invalid number of arguments provided. Expected "
         ++ show (length args)
         ++ ", received "
         ++ show (length xs)
 
+eval (Application _ _       ) = failWith "Type is not callable"
+
 -- Function declaration
 eval (FuncDef name args body) = do
-  func <- captureFunctionInContext
-  bindToVariable func >> return func
-  where
-    captureFunctionInContext = get >>= \env -> return $ Func env args body
-    bindToVariable f = get >>= put . (++ [(name, f)])
+  env <- get
+  let func = Func env' args body
+      env' = (name, func) : env
+  put env' >> return func

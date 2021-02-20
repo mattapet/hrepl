@@ -23,10 +23,10 @@ failWith message = liftF $ Left message
 lookupVariable :: Name -> Result (Either Primitive Expr)
 lookupVariable n = do
   env <- get
-  maybeToState ((Right <$> lookup n env) <|> (Left <$> lookup n primitives))
+  convertToState ((Right <$> lookup n env) <|> (Left <$> lookup n primitives))
   where
-    maybeToState = maybe unboundError return
-    unboundError = failWith $ "Found unbound variable '" ++ n ++ "'"
+    convertToState = maybe unboundError return
+    unboundError   = failWith $ "Found unbound variable '" ++ n ++ "'"
 
 evaluateInContext :: Expr -> Environment -> Result Expr
 evaluateInContext content context = do
@@ -44,6 +44,8 @@ eval val@(Number  _) = return val
 eval val@Func{}      = return val
 eval (Identifier x)  = lookupVariable x >>= unpack
   where
+    -- There is nothing more we can do with primitive value, so we just return
+    -- their identifier back
     unpack (Left  _) = return $ Identifier x
     unpack (Right e) = eval e
 
@@ -59,18 +61,17 @@ eval (Application (Identifier "if") _) =
 
 
 -- Applications
-eval (Application (Identifier op) xs) = lookupVariable op >>= \case
-  Left prim -> do
-    args <- traverse eval xs
-    liftF $ prim args
-  Right e -> eval (Application e xs)
+eval (Application (Identifier op) xs) = lookupVariable op >>= eval'
+  where
+    eval' (Left  prim) = traverse eval xs >>= liftF . prim
+    eval' (Right val ) = eval (Application val xs)
 
 eval (Application (Func e args body) xs) = bindArguments
   >>= evaluateInContext body
   where
-    bindArguments | length args == length xs = (++ e) . zip args <$> xs'
-                  | otherwise                = failWith invalidNumberOfArgs
-    xs' = traverse eval xs
+    bindArguments
+      | length args == length xs = (++ e) . zip args <$> traverse eval xs
+      | otherwise                = failWith invalidNumberOfArgs
     invalidNumberOfArgs =
       "Invalid number of arguments provided. Expected "
         ++ show (length args)

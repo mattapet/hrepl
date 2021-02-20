@@ -3,7 +3,9 @@
 module Lisp.Eval
   ( eval
   , liftResult
+  , liftResultM
   , runResult
+  , runResultM
   ) where
 
 import           Control.Applicative
@@ -12,25 +14,36 @@ import           Data.Functor.Identity
 import           Data.StateT
 
 import           Lisp.Core
-import           Lisp.Primitives
+import           Lisp.Primitives                ( Primitive
+                                                , primitives
+                                                )
 
-type Result a = StateT Environment (ExceptT String Identity) a
+type Result m a = StateT Environment (ExceptT String m) a
 
-liftResult :: Either String a -> Result a
-liftResult = liftS . liftE
+liftResult :: Either String a -> Result Identity a
+liftResult = liftResultM
 
-runResult :: Result a -> Environment -> Either String (a, Environment)
+liftResultM :: (Monad m) => Either String a -> Result m a
+liftResultM = liftS . liftE
+
+runResult :: Result Identity a -> Environment -> Either String (a, Environment)
 runResult r = runIdentity . runExceptT . runStateT r
+
+runResultM :: (Monad m)
+           => Result m a
+           -> Environment
+           -> m (Either String (a, Environment))
+runResultM r = runExceptT . runStateT r
 
 -- Utility functions
 
-failWith :: String -> Result a
+failWith :: (Monad m) => String -> Result m a
 failWith = liftS . throwError
 
 -- | Variable lookup retrieves a variable from the entire accessible context.
 --   I.e., current environment as right value, or one of the primitive functions
 --   as left value.
-lookupVariable :: Name -> Result (Either Primitive Expr)
+lookupVariable :: (Monad m) => Name -> Result m (Either Primitive Expr)
 lookupVariable n = do
   env <- get
   convertToState ((Right <$> lookup n env) <|> (Left <$> lookup n primitives))
@@ -38,7 +51,7 @@ lookupVariable n = do
     convertToState = maybe unboundError return
     unboundError   = failWith $ "Found unbound variable '" ++ n ++ "'"
 
-evaluateInContext :: Expr -> Environment -> Result Expr
+evaluateInContext :: (Monad m) => Expr -> Environment -> Result m Expr
 evaluateInContext content context = do
   currentEnv <- get
   result     <- put context >> eval content
@@ -46,7 +59,7 @@ evaluateInContext content context = do
 
 -- Evaluation
 
-eval :: Expr -> Result Expr
+eval :: (Monad m) => Expr -> Result m Expr
 -- Atoms
 eval val@Nil         = return val
 eval val@(Boolean _) = return val

@@ -3,7 +3,7 @@ module Lisp.Specs.EvalSpec where
 import           Control.Monad                  ( forM_ )
 import           Data.StateT
 import           Lisp.Core
-import           Lisp.Eval                      ( eval )
+import           Lisp.Eval                      ( eval, runResult )
 import           Test.Hspec
 import           Text.Printf                    ( printf )
 
@@ -19,7 +19,7 @@ spec = do
           ]
     forM_ testSuite $ \(env, input, result) ->
       it (printf "should evaluate %s to %s" (show input) (show result)) $ do
-        (fst <$> runStateT (eval input) env) `shouldBe` result
+        (fst <$> runResult (eval input) env) `shouldBe` result
 
   describe "primitives application" $ do
     let makeApp name args = Application (Identifier name) args
@@ -127,7 +127,7 @@ spec = do
     forM_ testSuites $ \(desc, testSuite) -> describe desc $ do
       forM_ testSuite $ \(env, input, result) ->
         it (printf "should evaluate %s to %s" (show input) (show result)) $ do
-          (fst <$> runStateT (eval input) env) `shouldBe` result
+          (fst <$> runResult (eval input) env) `shouldBe` result
 
   describe "functions" $ do
     let makeApp name args = Application (Identifier name) args
@@ -173,4 +173,4 @@ spec = do
         ]
     forM_ testSuit $ \(env, input, result) ->
       it (printf "should evaluate %s to %s" (show input) (show result)) $ do
-        runStateT (eval input) env `shouldBe` result
+        runResult (eval input) env `shouldBe` result

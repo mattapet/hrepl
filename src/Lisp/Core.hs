@@ -36,6 +36,10 @@ instance Eq Expr where
 
 type Environment = [(Name, Expr)]
 
+formatEnv :: Environment -> String
+formatEnv = unlines . (formatEntry <$>)
+  where formatEntry (name, value) = "(" ++ name ++ " " ++ format value ++ ")"
+
 format :: Expr -> String
 format Nil                = "nil"
 format (Boolean    True ) = "true"
@@ -43,10 +47,9 @@ format (Boolean    False) = "false"
 format (Number     x    ) = show x
 format (Identifier n    ) = n
 format (Application x xs) = "(" ++ unwords (format <$> (x : xs)) ++ ")"
-format (Func _ args body) = "([anonymous] [" ++ args' ++ body' ++ ")"
-  where
-    args' = " [" ++ unwords args ++ "]"
-    body' = format body
+format (Func _ args _   ) = "<λ" ++ args' ++ ">"
+  where args' = " [" ++ unwords args ++ "]"
+
 format (FuncDef name args body) = "(defun " ++ name ++ args' ++ body' ++ ")"
   where
     args' = " [" ++ unwords args ++ "] "

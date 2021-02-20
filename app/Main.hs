@@ -21,7 +21,7 @@ main = loop []
       input <- read'
       case input of
         ":quit" -> return ()
-        ":env"  -> print' (show env) >> loop env
+        ":env"  -> print' (formatEnv env) >> loop env
         _       -> case runResult (eval' input) env of
           Right (result, env') -> print' result >> loop env'
           Left  err            -> print' err >> loop env

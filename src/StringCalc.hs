@@ -44,7 +44,7 @@ evalE (LetE name val) = do
   r <- evalE val
   s <- get
   put (insert name r s) >> return r
-evalE (IdE x) = get >>= liftF . unwrapValue . (!? x)
+evalE (IdE x) = get >>= liftS . unwrapValue . (!? x)
   where
     unwrapValue (Just value) = Right value
     unwrapValue Nothing      = Left (printf "Variable '%s' is not defined" x)

@@ -5,6 +5,8 @@ module Main where
 import           Control.Monad                  ( (>=>)
                                                 , unless
                                                 )
+import           Data.ExceptT
+import           Data.Functor.Identity
 import           Data.StateT
 import           Lisp.Core
 import           Lisp.Eval
@@ -20,15 +22,15 @@ main = loop []
       case input of
         ":quit" -> return ()
         ":env"  -> print' (show env) >> loop env
-        _       -> case runStateT (eval' input) env of
+        _       -> case runResult (eval' input) env of
           Right (result, env') -> print' result >> loop env'
           Left  err            -> print' err >> loop env
 
 read' :: IO String
 read' = putStr "hrepl> " >> hFlush stdout >> getLine
 
-eval' :: String -> StateT Environment (Either String) String
-eval' = liftF . parseExpr >=> eval >=> (return . format)
+eval' :: String -> StateT Environment (ExceptT String Identity) String
+eval' = liftResult . parseExpr >=> eval >=> (return . format)
 
 print' :: String -> IO ()
 print' = putStrLn

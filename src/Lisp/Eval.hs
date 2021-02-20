@@ -2,20 +2,30 @@
 
 module Lisp.Eval
   ( eval
+  , liftResult
+  , runResult
   ) where
 
 import           Control.Applicative
+import           Data.ExceptT
+import           Data.Functor.Identity
 import           Data.StateT
 
 import           Lisp.Core
 import           Lisp.Primitives
 
-type Result a = StateT Environment (Either String) a
+type Result a = StateT Environment (ExceptT String Identity) a
+
+liftResult :: Either String a -> Result a
+liftResult = liftS . liftE
+
+runResult :: Result a -> Environment -> Either String (a, Environment)
+runResult r = runIdentity . runExceptT . runStateT r
 
 -- Utility functions
 
 failWith :: String -> Result a
-failWith message = liftF $ Left message
+failWith = liftS . throwError
 
 -- | Variable lookup retrieves a variable from the entire accessible context.
 --   I.e., current environment as right value, or one of the primitive functions
@@ -63,7 +73,7 @@ eval (Application (Identifier "if") _) =
 -- Applications
 eval (Application (Identifier op) xs) = lookupVariable op >>= eval'
   where
-    eval' (Left  prim) = traverse eval xs >>= liftF . prim
+    eval' (Left  prim) = traverse eval xs >>= liftS . liftE . prim
     eval' (Right val ) = eval (Application val xs)
 
 eval (Application (Func e args body) xs) = bindArguments

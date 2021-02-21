@@ -42,5 +42,5 @@ catchError f m = ExceptT $ runExceptT m >>= \case
 catch :: (Monad m) => ExceptT e m a -> (e -> ExceptT e' m a) -> ExceptT e' m a
 catch = flip catchError
 
-liftE :: (Applicative m) => Either e a -> ExceptT e m a
-liftE = ExceptT . pure
+liftExceptT :: (Applicative m) => Either e a -> ExceptT e m a
+liftExceptT = ExceptT . pure

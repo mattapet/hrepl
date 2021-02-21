@@ -1,30 +1,29 @@
 {-# LANGUAGE LambdaCase #-}
 
 module Lisp.Primitives
-  ( primitives
+  ( basicPrimitives
   , Primitive
   ) where
 
-import           Data.ExceptT
 import           Lisp.Core
 
-type Primitive m = [Expr] -> ExceptT String m Expr
+type Primitive m = [Expr] -> m (Either String Expr)
 
-primitives :: (Applicative m) => [(Name, Primitive m)]
-primitives =
-  [ ("+"   , liftE . makeNumberBinOp "+" (+))
-  , ("-"   , liftE . makeNumberBinOp "-" (-))
-  , ("*"   , liftE . makeNumberBinOp "*" (*))
-  , ("/"   , liftE . makeNumberBinOp "/" div)
-  , ("mod" , liftE . makeNumberBinOp "mod" rem)
-  , ("eq"  , liftE . eq)
-  , ("null", liftE . null')
-  , ("not" , liftE . not')
-  , ("="   , liftE . makeBooleanBinOp "=" (==))
-  , ("<"   , liftE . makeBooleanBinOp "<" (<))
-  , ("<="  , liftE . makeBooleanBinOp "<=" (<=))
-  , (">"   , liftE . makeBooleanBinOp ">" (>))
-  , (">="  , liftE . makeBooleanBinOp ">=" (>=))
+basicPrimitives :: (Monad m) => [(Name, Primitive m)]
+basicPrimitives =
+  [ ("+"   , pure . makeNumberBinOp "+" (+))
+  , ("-"   , pure . makeNumberBinOp "-" (-))
+  , ("*"   , pure . makeNumberBinOp "*" (*))
+  , ("/"   , pure . makeNumberBinOp "/" div)
+  , ("mod" , pure . makeNumberBinOp "mod" rem)
+  , ("eq"  , pure . eq)
+  , ("null", pure . null')
+  , ("not" , pure . not')
+  , ("="   , pure . makeBooleanBinOp "=" (==))
+  , ("<"   , pure . makeBooleanBinOp "<" (<))
+  , ("<="  , pure . makeBooleanBinOp "<=" (<=))
+  , (">"   , pure . makeBooleanBinOp ">" (>))
+  , (">="  , pure . makeBooleanBinOp ">=" (>=))
   ]
 
 

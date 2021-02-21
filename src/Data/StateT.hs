@@ -31,5 +31,5 @@ get = StateT $ \s -> pure (s, s)
 put :: (Applicative m) => s -> StateT s m ()
 put s = StateT $ \_ -> pure ((), s)
 
-liftS :: (Functor m) => m a -> StateT s m a
-liftS ma = StateT $ \s -> (, s) <$> ma
+liftStateT :: (Functor m) => m a -> StateT s m a
+liftStateT ma = StateT $ \s -> (, s) <$> ma

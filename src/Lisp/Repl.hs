@@ -1,6 +1,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE EmptyCase #-}
 {-# LANGUAGE GeneralisedNewtypeDeriving #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module Lisp.Repl where
 
@@ -10,17 +11,17 @@ import           Lisp.Eval
 import           Lisp.Parser
 import           System.IO
 
-class (Monad m) => Repl m where
+class (Monad m, Eval (ResultT m)) => Repl m where
   read' :: m String
   print' :: String -> m ()
   loadFile :: String -> m String
 
   eval' :: Environment -> String -> m Environment
-  eval' env = runResultM env . runEval >=> \case
-      Right (result, env') -> print' result >> return env'
-      Left  err            -> print' err >> return env
+  eval' env = runResultT env . runEval >=> \case
+      Right (x, env') -> print' x >> return env'
+      Left err -> print' err >> return env
     where
-      runEval = liftResultM . parseExpr >=> eval >=> return . format
+      runEval = liftResultT . parseExpr >=> eval >=> return . format
 
 loop :: (Repl m) => Environment -> m ()
 loop env = do
@@ -33,10 +34,7 @@ loop env = do
 
 -- Repl IO implementation
 
-newtype ReplIO a = ReplIO { unReplIO :: IO a }
-  deriving (Monad, Applicative, Functor)
-
-instance Repl ReplIO where
-  read'    = ReplIO $ putStr "hrepl> " >> hFlush stdout >> getLine
-  print'   = ReplIO . putStrLn
-  loadFile = ReplIO . readFile
+instance Repl IO where
+  read'    = putStr "hrepl> " >> hFlush stdout >> getLine
+  print'   = putStrLn
+  loadFile = readFile

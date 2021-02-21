@@ -3,9 +3,8 @@ module Lisp.Specs.EvalSpec where
 import           Control.Monad                  ( forM_ )
 import           Data.StateT
 import           Lisp.Core
-import           Lisp.Eval                      ( eval
-                                                , runResult
-                                                )
+import           Lisp.Eval                      ( eval )
+import           Lisp.Lib
 import           Test.Hspec
 import           Text.Printf                    ( printf )
 
@@ -21,7 +20,7 @@ spec = do
           ]
     forM_ testSuite $ \(env, input, result) ->
       it (printf "should evaluate %s to %s" (show input) (show result)) $ do
-        (fst <$> runResult (eval input) env) `shouldBe` result
+        (fst <$> runResult env (eval input)) `shouldBe` result
 
   describe "primitives application" $ do
     let makeApp name args = List (Identifier name : args)
@@ -131,7 +130,7 @@ spec = do
     forM_ testSuites $ \(desc, testSuite) -> describe desc $ do
       forM_ testSuite $ \(env, input, result) ->
         it (printf "should evaluate %s to %s" (show input) (show result)) $ do
-          (fst <$> runResult (eval input) env) `shouldBe` result
+          (fst <$> runResult env (eval input)) `shouldBe` result
 
   describe "functions" $ do
     let makeApp name args = List (Identifier name : args)
@@ -147,8 +146,8 @@ spec = do
         [ ( []
           , defun "id" ["a"] (Identifier "a")
           , Right
-            ( Func [] ["a"] (Identifier "a")
-            , [("id", Func [] ["a"] (Identifier "a"))]
+            ( Func [] ["a"] (List [Identifier "a"])
+            , [("id", Func [] ["a"] (List [Identifier "a"]))]
             )
           )
         , ( [("id", Func [] ["a"] (Identifier "a"))]
@@ -194,4 +193,4 @@ spec = do
         ]
     forM_ testSuit $ \(env, input, result) ->
       it (printf "should evaluate %s to %s" (show input) (show result)) $ do
-        runResult (eval input) env `shouldBe` result
+        runResult env (eval input) `shouldBe` result

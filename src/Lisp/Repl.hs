@@ -15,8 +15,12 @@ class (Monad m) => Repl m where
   print' :: String -> m ()
   loadFile :: String -> m String
 
-  eval' :: String -> Result m String
-  eval' = liftResultM . parseExpr >=> eval >=> return . format
+  eval' :: Environment -> String -> m Environment
+  eval' env = runResultM env . runEval >=> \case
+      Right (result, env') -> print' result >> return env'
+      Left  err            -> print' err >> return env
+    where
+      runEval = liftResultM . parseExpr >=> eval >=> return . format
 
 loop :: (Repl m) => Environment -> m ()
 loop env = do
@@ -24,14 +28,8 @@ loop env = do
   case words input of
     (":quit"            : _) -> return ()
     (":env"             : _) -> print' (formatEnv env) >> loop env
-    (":load" : fileName : _) -> do
-      contents <- loadFile fileName
-      runResultM (eval' contents) env >>= \case
-        Right (_, env') -> loop env'
-        Left  err       -> print' err >> loop env
-    _ -> runResultM (eval' input) env >>= \case
-      Right (result, env') -> print' result >> loop env'
-      Left  err            -> print' err >> loop env
+    (":load" : fileName : _) -> loadFile fileName >>= eval' env >>= loop
+    _                        -> eval' env input >>= loop
 
 -- Repl IO implementation
 

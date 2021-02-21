@@ -31,10 +31,10 @@ runResult :: Result Identity a -> Environment -> Either String (a, Environment)
 runResult r = runIdentity . runExceptT . runStateT r
 
 runResultM :: (Monad m)
-           => Result m a
-           -> Environment
+           => Environment
+           -> Result m a
            -> m (Either String (a, Environment))
-runResultM r = runExceptT . runStateT r
+runResultM e r = runExceptT $ runStateT r e
 
 -- Utility functions
 
@@ -62,11 +62,11 @@ evaluateInContext content context = do
 
 eval :: (Monad m) => Expr -> Result m Expr
 -- Atoms
-eval val@Nil         = return val
-eval val@(Boolean _) = return val
-eval val@(Number  _) = return val
-eval val@Func{}      = return val
-eval (Identifier x)  = lookupVariable x >>= unpack
+eval val@(List    []) = return val
+eval val@(Boolean _ ) = return val
+eval val@(Number  _ ) = return val
+eval val@Func{}       = return val
+eval (Identifier x)   = lookupVariable x >>= unpack
   where
     -- There is nothing more we can do with primitive value, so we just return
     -- their identifier back
@@ -83,6 +83,7 @@ eval (List ((Identifier "if") : _)) =
   failWith "Invalid number of arguments. 'if' expects exactly three arguments"
 
 -- Function declaration
+
 eval (List [Identifier "defun", Identifier name, List args, body]) = do
   env   <- get
   args' <- unpackArgs args
@@ -90,16 +91,18 @@ eval (List [Identifier "defun", Identifier name, List args, body]) = do
       env' = (name, func) : env
   put env' >> return func
   where
-    unpackArgs = traverse
-      (\case
-        Identifier n -> return n
-        _            -> liftS $ liftE $ Left ""
-      )
-eval (List ((Identifier "defun") : _ )) = undefined
+    unpackArgs = traverse unpackArg
+    unpackArg (Identifier n) = return n
+    unpackArg _              = failWith
+      "Invalid function definition. Argument name must be an identifier"
+
+eval (List ((Identifier "defun") : _)) =
+  failWith
+    "Invalid function definition. Function expects function name, list of arguments and body"
 
 
 -- Applications
-eval (List ((Identifier op     ) : xs)) = lookupVariable op >>= eval'
+eval (List ((Identifier op) : xs)) = lookupVariable op >>= eval'
   where
     eval' (Left  prim) = traverse eval xs >>= liftS . prim
     eval' (Right val ) = eval (List (val : xs))
@@ -116,4 +119,5 @@ eval (List ((Func e args body) : xs)) = bindArguments
         ++ ", received "
         ++ show (length xs)
 
-eval (List _) = failWith "Type is not callable"
+eval (List [x     ]) = eval x
+eval (List (x : xs)) = eval x >> eval (List xs)

@@ -3,15 +3,13 @@ module Lisp.Core where
 type Name = String
 
 data Expr =
-    Nil
-  | Boolean Bool
+    Boolean Bool
   | Number Integer
   | Identifier Name
   | List [Expr]
   | Func Environment [Name] Expr
 
 instance Show Expr where
-  show Nil                   = "Nil"
   show (Boolean    x       ) = "Boolean " ++ show x
   show (Number     x       ) = "Number " ++ show x
   show (Identifier x       ) = "Identifier " ++ show x
@@ -19,7 +17,6 @@ instance Show Expr where
   show (Func _ args body   ) = "Func " ++ show args ++ " " ++ show body
 
 instance Eq Expr where
-  Nil             == Nil             = True
   (Boolean    x ) == (Boolean    y ) = x == y
   (Number     x ) == (Number     y ) = x == y
   (Identifier x ) == (Identifier y ) = x == y
@@ -35,11 +32,11 @@ formatEnv = unlines . (formatEntry <$>)
   where formatEntry (name, value) = "(" ++ name ++ " " ++ format value ++ ")"
 
 format :: Expr -> String
-format Nil                = "nil"
 format (Boolean    True ) = "true"
 format (Boolean    False) = "false"
 format (Number     x    ) = show x
 format (Identifier n    ) = n
+format (List       []   ) = "nil"
 format (List       xs   ) = "(" ++ unwords (format <$> xs) ++ ")"
 format (Func _ args _   ) = "<λ" ++ args' ++ ">"
   where args' = " [" ++ unwords args ++ "]"

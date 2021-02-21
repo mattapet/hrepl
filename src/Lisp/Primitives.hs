@@ -38,8 +38,8 @@ not' [_] = Left "Invalid argument type. 'not' expects boolean argument"
 not' _ = Left "Invalid number of arguments. 'not' expects exactly one argument"
 
 null' :: [Expr] -> Either String Expr
-null' [Nil] = Right $ Boolean True
-null' [_  ] = Right $ Boolean False
+null' [List []] = Right $ Boolean True
+null' [_      ] = Right $ Boolean False
 null' _ =
   Left "Invalid number of arguments. 'null' expects exactly one argument"
 

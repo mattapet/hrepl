@@ -27,8 +27,8 @@ atom :: ParsecT String u Identity Expr
 atom = foldl1 (<|>) (try <$> atomParsers) -- <?> "Expected atom"
   where
     atomParsers =
-      [ string "nil" $> Nil
-      , string "()" $> Nil
+      [ string "nil" $> List []
+      , string "()" $> List []
       , string "true" $> Boolean True
       , string "false" $> Boolean False
       , Number <$> integer
@@ -43,7 +43,8 @@ expr = spaces *> foldl1 (<|>) (try <$> exprParsers) <* spaces
   where exprParsers = [atom, list]
 
 parseExpr :: String -> Either String Expr
-parseExpr = mapLeft show . parse expr ""
+parseExpr = mapLeft show . parse topLevelExpr ""
   where
+    topLevelExpr = List <$> many1 expr
     mapLeft _ (Right b) = Right b
     mapLeft f (Left  a) = Left $ f a

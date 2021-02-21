@@ -11,7 +11,7 @@ spec :: Spec
 spec = do
   describe "Converting Exprs to strings" $ do
     let testSuites =
-          [ (Nil           , "nil")
+          [ (List []       , "nil")
           , (Boolean True  , "true")
           , (Boolean False , "false")
           , (Number 1234   , "1234")

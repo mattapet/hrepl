@@ -33,6 +33,7 @@ library
       Lisp.Eval
       Lisp.Parser
       Lisp.Primitives
+      Lisp.Repl
       StringCalc
   other-modules:
       Paths_hrepl

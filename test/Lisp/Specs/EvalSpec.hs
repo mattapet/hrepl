@@ -13,7 +13,7 @@ spec :: Spec
 spec = do
   describe "atom evaluation" $ do
     let testSuite =
-          [ ([]               , Nil           , Right Nil)
+          [ ([]               , List []       , Right $ List [])
           , ([]               , Boolean True  , Right $ Boolean True)
           , ([]               , Number 1      , Right $ Number 1)
           , ([], Identifier "x", Left "Found unbound variable 'x'")
@@ -28,8 +28,10 @@ spec = do
     let
       testSuites =
         [ ( "atom applications"
-          , [ ([], List [Nil]     , Left "Type is not callable")
-            , ([], List [Number 2], Left "Type is not callable")
+          , [ ([], List []                 , Right $ List [])
+            , ([], List [List []]          , Right $ List [])
+            , ([], List [Number 2]         , Right $ Number 2)
+            , ([], List [List [], Number 2], Right $ Number 2)
             ]
           )
         , ( "numeric operations"
@@ -56,11 +58,11 @@ spec = do
                 "Invalid number of arguments. 'eq' expects exactly two arguments"
               )
             , ( []
-              , makeApp "eq" [Boolean True, Boolean True, Nil]
+              , makeApp "eq" [Boolean True, Boolean True, List []]
               , Left
                 "Invalid number of arguments. 'eq' expects exactly two arguments"
               )
-            , ([], makeApp "null" [Nil]     , Right $ Boolean True)
+            , ([], makeApp "null" [List []] , Right $ Boolean True)
             , ([], makeApp "null" [Number 1], Right $ Boolean False)
             , ( []
               , makeApp "null" []
@@ -178,6 +180,16 @@ spec = do
             ]
           , makeApp "add" [Number 1, Number 2, Number 3]
           , Left "Invalid number of arguments provided. Expected 2, received 3"
+          )
+        , ( []
+          , List [Identifier "defun"]
+          , Left
+            "Invalid function definition. Function expects function name, list of arguments and body"
+          )
+        , ( []
+          , List [Identifier "defun", Identifier "f", List [Number 1], List []]
+          , Left
+            "Invalid function definition. Argument name must be an identifier"
           )
         ]
     forM_ testSuit $ \(env, input, result) ->

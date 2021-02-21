@@ -13,14 +13,14 @@ spec :: Spec
 spec = do
   describe "atoms" $ do
     let testSuites =
-          [ ("nil"             , Nil)
-          , ("()"              , Nil)
-          , ("true"            , Boolean True)
-          , ("false"           , Boolean False)
-          , ("1"               , Number 1)
-          , ("-1"              , Number (-1))
-          , ("test-identifier" , Identifier "test-identifier")
-          , ("test-identifier2", Identifier "test-identifier2")
+          [ ("nil"             , List [List []])
+          , ("()"              , List [List []])
+          , ("true"            , List [Boolean True])
+          , ("false"           , List [Boolean False])
+          , ("1"               , List [Number 1])
+          , ("-1"              , List [Number (-1)])
+          , ("test-identifier" , List [Identifier "test-identifier"])
+          , ("test-identifier2", List [Identifier "test-identifier2"])
           ]
     forM_ testSuites $ \(input, result) ->
       it (printf "should parse %s to %s" (show input) (show result)) $ do
@@ -30,18 +30,20 @@ spec = do
     let testSuites = ["+", "-", "*", "/", "%", "=", "<", ">"]
     forM_ testSuites $ \operator ->
       it (printf "should parse operator %s" (show operator)) $ do
-        parseExpr operator `shouldBe` Right (Identifier operator)
+        parseExpr operator `shouldBe` Right (List [Identifier operator])
 
   describe "applications" $ do
     let
       testSuites =
-        [ ("(a)"    , List [Identifier "a"])
-        , ("(+ 1 2)", List [Identifier "+", Number 1, Number 2])
+        [ ("(a)"    , List [List [Identifier "a"]])
+        , ("(+ 1 2)", List [List [Identifier "+", Number 1, Number 2]])
         , ( "(+ 1 (+ 1 2))"
           , List
-            [ Identifier "+"
-            , Number 1
-            , List [Identifier "+", Number 1, Number 2]
+            [ List
+                [ Identifier "+"
+                , Number 1
+                , List [Identifier "+", Number 1, Number 2]
+                ]
             ]
           )
         ]
@@ -52,16 +54,35 @@ spec = do
 
 
   describe "functions" $ do
-    let testSuites =
-          [ ( "(defun f (a b) (+ a b))"
-            , List
+    let
+      testSuites =
+        [ ( "(defun f (a b) (+ a b))"
+          , List
+            [ List
+                [ Identifier "defun"
+                , Identifier "f"
+                , List [Identifier "a", Identifier "b"]
+                , List [Identifier "+", Identifier "a", Identifier "b"]
+                ]
+            ]
+          )
+        , ( "(defun f (a) a)\n(defun g (b) b)"
+          , List
+            [ List
               [ Identifier "defun"
               , Identifier "f"
-              , List [Identifier "a", Identifier "b"]
-              , List [Identifier "+", Identifier "a", Identifier "b"]
+              , List [Identifier "a"]
+              , Identifier "a"
               ]
-            )
-          ]
+            , List
+              [ Identifier "defun"
+              , Identifier "g"
+              , List [Identifier "b"]
+              , Identifier "b"
+              ]
+            ]
+          )
+        ]
     forM_ testSuites $ \(input, result) ->
       it (printf "should parse %s to %s" (show input) (show result)) $ do
         parseExpr input `shouldBe` Right result

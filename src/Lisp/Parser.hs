@@ -19,7 +19,7 @@ integer = positive <|> negative
     negative = negate <$> (char '-' *> positive)
 
 identifier :: ParsecT String u Identity String
-identifier = many1 (letter <|> digit <|> oneOf "-+*/%=<>")
+identifier = many1 (letter <|> digit <|> oneOf "-+*/%=<>'")
 
 -- Ref: https://stackoverflow.com/questions/24106314/parser-for-quoted-string-using-parsec
 stringLiteral :: ParsecT String u Identity String

@@ -18,6 +18,9 @@ import           Lisp.Core
 import           Lisp.Primitives                ( Primitive
                                                 , primitives
                                                 )
+import           System.IO                      ( hFlush
+                                                , stdout
+                                                )
 
 newtype ResultT m a = ResultT (StateT Environment (ExceptT String m) a)
   deriving (Monad, Applicative, Functor)
@@ -75,11 +78,13 @@ class (Monad m, MonadFail m) => Eval m where
 
   -- IO
 
-  eval (List [Identifier "write", value]) = do
+  eval (List [Identifier "write", expr]) = do
+    value <- eval expr
     _ <- write (format value)
     return $ List []
 
-  eval (List [Identifier "write-line", value]) = do
+  eval (List [Identifier "write-line", expr]) = do
+    value <- eval expr
     _ <- write $ format value ++ "\n"
     return $ List []
 
@@ -93,6 +98,18 @@ class (Monad m, MonadFail m) => Eval m where
     Boolean False -> eval else'
     _ -> fail ifInvalidArgumentType
   eval (List ((Identifier "if") : _)) = fail ifInvalidNumberOfArguments
+
+  -- Let
+
+  eval (List [Identifier "let", List bindings, body]) = do
+    env   <- getEnv
+    (names, values) <- unzip <$> unpackBindings bindings
+    eval $ List $ Func env names body : values
+    where
+      unpackBindings = traverse unpackBinding
+      unpackBinding (Identifier x) = return (x, List [])
+      unpackBinding (List [Identifier x, value]) = return (x, value)
+      unpackBinding _ = fail invalidLetBindingSymbol
 
   -- Function declaration
 
@@ -159,14 +176,17 @@ invalidNumberOfArguments expected received =
     ++ ", received "
     ++ show (length received)
 
+invalidLetBindingSymbol :: String
+invalidLetBindingSymbol = "Invalid 'let' binding symbol."
+
 -- IO
 
 instance (Monad m) => MonadFail (ResultT m) where
   fail = liftResultT . Left
 
 instance Eval (ResultT IO) where
-  getEnv   = ResultT get
-  setEnv   = ResultT . put
-  write    = liftResultM . putStr
+  getEnv = ResultT get
+  setEnv = ResultT . put
+  write c = liftResultM (putStr c >> hFlush stdout)
   readC    = liftResultM getChar
   readLine = liftResultM getLine

@@ -217,6 +217,33 @@ spec = do
       it (printf "should evaluate %s to %s" (show input) (show result)) $ do
         runResult env (eval input) `shouldBe` result
 
+  describe "let binging" $ do
+    let testSuite =
+          [ ( []
+            , makeApp "let" [List [Identifier "a"], Identifier "a"]
+            , Right (List [], [])
+            )
+          , ( []
+            , makeApp
+              "let"
+              [ List [List [Identifier "a", Number 2]]
+              , List [Identifier "+", Identifier "a", Identifier "a"]
+              ]
+            , Right (Number 4, [])
+            )
+          , ( []
+            , makeApp
+              "let"
+              [ List [List [Number 1, Number 2]]
+              , List [Identifier "+", Identifier "a", Identifier "a"]
+              ]
+            , Left "Invalid 'let' binding symbol."
+            )
+          ]
+    forM_ testSuite $ \(env, input, result) ->
+      it (printf "should evaluate %s to %s" (show input) (show result)) $ do
+        runResult env (eval input) `shouldBe` result
+
   describe "io" $ do
     let
       testSuite =
@@ -227,6 +254,12 @@ spec = do
         , ( []
           , (("", "")           , makeApp "write-line" [Number 1])
           , (Right (List [], []), ("", "1\n"))
+          )
+        , ( [("greeting", StringLit "Hello World!")]
+          , (("", ""), makeApp "write-line" [Identifier "greeting"])
+          , ( Right (List [], [("greeting", StringLit "Hello World!")])
+            , ("", "Hello World!\n")
+            )
           )
         , ( []
           , (("", "")           , makeApp "write-line" [Boolean True])

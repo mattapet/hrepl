@@ -1,7 +1,7 @@
 {-# LANGUAGE LambdaCase #-}
 
 module Lisp.Primitives
-  ( basicPrimitives
+  ( primitives
   , Primitive
   ) where
 
@@ -9,8 +9,8 @@ import           Lisp.Core
 
 type Primitive m = [Expr] -> m (Either String Expr)
 
-basicPrimitives :: (Monad m) => [(Name, Primitive m)]
-basicPrimitives =
+primitives :: (Monad m) => [(Name, Primitive m)]
+primitives =
   [ ("+"   , pure . makeNumberBinOp "+" (+))
   , ("-"   , pure . makeNumberBinOp "-" (-))
   , ("*"   , pure . makeNumberBinOp "*" (*))

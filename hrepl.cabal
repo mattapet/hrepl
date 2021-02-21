@@ -26,6 +26,7 @@ source-repository head
 library
   exposed-modules:
       Data.ExceptT
+      Data.State
       Data.StateT
       Echo
       Lib

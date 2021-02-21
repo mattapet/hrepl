@@ -22,8 +22,8 @@ spec = do
       it (printf "should evaluate %s to %s" (show input) (show result)) $ do
         (fst <$> runResult env (eval input)) `shouldBe` result
 
+  let makeApp name args = List (Identifier name : args)
   describe "primitives application" $ do
-    let makeApp name args = List (Identifier name : args)
     let
       testSuites =
         [ ( "atom applications"
@@ -133,7 +133,6 @@ spec = do
           (fst <$> runResult env (eval input)) `shouldBe` result
 
   describe "functions" $ do
-    let makeApp name args = List (Identifier name : args)
     let defun name args body =
           List
             [ Identifier "defun"
@@ -194,3 +193,23 @@ spec = do
     forM_ testSuit $ \(env, input, result) ->
       it (printf "should evaluate %s to %s" (show input) (show result)) $ do
         runResult env (eval input) `shouldBe` result
+
+  describe "io" $ do
+    let testSuite =
+          [ ( []
+            , (("", "")           , makeApp "write" [Number 1])
+            , (Right (List [], []), ("", "1"))
+            )
+          , ( []
+            , (("", "")           , makeApp "write-line" [Number 1])
+            , (Right (List [], []), ("", "1\n"))
+            )
+          , ( []
+            , (("", "")           , makeApp "write-line" [Boolean True])
+            , (Right (List [], []), ("", "true\n"))
+            )
+          ]
+
+    forM_ testSuite $ \(env, (s, input), result) ->
+      it (printf "should eval %s to %s" (show (s, input)) (show result)) $ do
+        runResultState s env (eval input) `shouldBe` result

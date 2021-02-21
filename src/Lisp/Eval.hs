@@ -6,6 +6,7 @@ module Lisp.Eval
   , liftResultM
   , runResult
   , runResultM
+  , Result
   ) where
 
 import           Control.Applicative

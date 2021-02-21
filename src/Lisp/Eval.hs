@@ -112,6 +112,20 @@ class (Monad m, MonadFail m) => Eval m where
       unpackBinding (List [Identifier x, value]) = return (x, value)
       unpackBinding _ = fail invalidLetBindingSymbol
 
+  -- Lambda definition declaration
+
+  eval (List (Identifier "lambda" : List args : body)) = do
+    env   <- getEnv
+    args' <- unpackArgs args
+    return $ Func env args' (List body)
+    where
+      unpackArgs = traverse unpackArg
+      unpackArg (Identifier n) = return n
+      unpackArg _              = fail invalidLambdaMissingIdentifier
+
+  eval (List ((Identifier "lambda") : _)) =
+    fail invalidLambda
+
   -- Function declaration
 
   eval (List (Identifier "defun" : Identifier name : List args : body)) = do
@@ -168,6 +182,14 @@ invalidFuncDefMissingIdentifier =
 invalidFuncDef :: String
 invalidFuncDef =
   "Invalid function definition. Function expects function name, list of arguments and body"
+
+invalidLambdaMissingIdentifier :: String
+invalidLambdaMissingIdentifier =
+  "Invalid lambda definition. Argument name must be an identifier"
+
+invalidLambda :: String
+invalidLambda =
+  "Invalid lambda definition. Function expects function name, list of arguments and body"
 
 
 invalidNumberOfArguments :: [a] -> [b] -> String

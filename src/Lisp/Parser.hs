@@ -9,8 +9,14 @@ import           Text.Parsec
 
 -- utility parsers
 
+ignoreChars :: ParsecT String u Identity ()
+ignoreChars = spaces >> comments >> spaces
+  where
+    comments =
+      optional (string ";;" >> manyTill anyChar newline >> spaces >> return ())
+
 parens :: ParsecT String u Identity a -> ParsecT String u Identity a
-parens p = char '(' *> spaces *> p <* spaces <* char ')'
+parens p = char '(' *> ignoreChars *> p <* ignoreChars <* char ')'
 
 integer :: ParsecT String u Identity Integer
 integer = positive <|> negative
@@ -50,12 +56,12 @@ list :: ParsecT String u Identity Expr
 list = parens $ List <$> many1 expr
 
 expr :: ParsecT String u Identity Expr
-expr = spaces *> foldl1 (<|>) (try <$> exprParsers) <* spaces
+expr = ignoreChars *> foldl1 (<|>) (try <$> exprParsers) <* ignoreChars
   where exprParsers = [atom, list]
 
 parseExpr :: String -> Either String Expr
 parseExpr = mapLeft show . parse topLevelExpr ""
   where
-    topLevelExpr = List <$> many1 expr
+    topLevelExpr = (List <$> many1 expr) <* eof
     mapLeft _ (Right b) = Right b
     mapLeft f (Left  a) = Left $ f a

@@ -68,6 +68,8 @@ test-suite test
       EchoSpec
       Lisp.Lib
       Lisp.Specs.CoreSpec
+      Lisp.Specs.Eval.BuiltinSpec
+      Lisp.Specs.Eval.PrimitivesSpec
       Lisp.Specs.EvalSpec
       Lisp.Specs.ParserSpec
       StringCalcSpec

@@ -27,10 +27,13 @@ loop :: (Repl m) => Environment -> m ()
 loop env = do
   input <- read'
   case words input of
-    (":quit"            : _) -> return ()
-    (":env"             : _) -> print' (formatEnv env) >> loop env
-    (":load" : fileName : _) -> loadFile fileName >>= eval' env >>= loop
-    _                        -> eval' env input >>= loop
+    (":quit"              : _) -> return ()
+    (":env"               : _) -> print' (formatEnv env) >> loop env
+    (":load" : fileName   : _) -> loadFile fileName >>= eval' env >>= loop
+    (":t"    : symbolName : _) -> case lookup symbolName env of
+      Just x  -> print' (show x) >> loop env
+      Nothing -> loop env
+    _ -> eval' env input >>= loop
 
 -- Repl IO implementation
 

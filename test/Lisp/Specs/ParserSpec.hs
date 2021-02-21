@@ -12,16 +12,20 @@ import           Test.Hspec
 spec :: Spec
 spec = do
   describe "atoms" $ do
-    let testSuites =
-          [ ("nil"             , List [List []])
-          , ("()"              , List [List []])
-          , ("true"            , List [Boolean True])
-          , ("false"           , List [Boolean False])
-          , ("1"               , List [Number 1])
-          , ("-1"              , List [Number (-1)])
-          , ("test-identifier" , List [Identifier "test-identifier"])
-          , ("test-identifier2", List [Identifier "test-identifier2"])
-          ]
+    let
+      testSuites =
+        [ ("nil"                       , List [List []])
+        , ("()"                        , List [List []])
+        , ("true"                      , List [Boolean True])
+        , ("false"                     , List [Boolean False])
+        , ("1"                         , List [Number 1])
+        , ("-1"                        , List [Number (-1)])
+        , ("test-identifier"           , List [Identifier "test-identifier"])
+        , ("test-identifier2"          , List [Identifier "test-identifier2"])
+        , ("\"\""                      , List [StringLit ""])
+        , ("\"str-literal\""           , List [StringLit "str-literal"])
+        , ("\"escaped-\\\"string\\\"\"", List [StringLit "escaped-\"string\""])
+        ]
     forM_ testSuites $ \(input, result) ->
       it (printf "should parse %s to %s" (show input) (show result)) $ do
         parseExpr input `shouldBe` Right result

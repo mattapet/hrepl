@@ -5,17 +5,32 @@ module Lisp.Primitives
   , Primitive
   ) where
 
+import           Data.Char                      ( toLower
+                                                , toUpper
+                                                )
 import           Lisp.Core
 
 type Primitive m = [Expr] -> m (Either String Expr)
 
 primitives :: (Monad m) => [(Name, Primitive m)]
 primitives =
-  [ ("+"   , pure . makeNumberBinOp "+" (+))
-  , ("-"   , pure . makeNumberBinOp "-" (-))
-  , ("*"   , pure . makeNumberBinOp "*" (*))
-  , ("/"   , pure . makeNumberBinOp "/" div)
-  , ("mod" , pure . makeNumberBinOp "mod" rem)
+  -- Algebraic operations
+  [ ("+"  , pure . makeNumberBinOp "+" (+))
+  , ("-"  , pure . makeNumberBinOp "-" (-))
+  , ("*"  , pure . makeNumberBinOp "*" (*))
+  , ("/"  , pure . makeNumberBinOp "/" div)
+  , ("mod", pure . makeNumberBinOp "mod" rem)
+  -- String operations
+  , ( "length"
+    , pure . makeStringTransformation "length" (Number . toInteger . length)
+    )
+  , ( "upcase"
+    , pure . makeStringTransformation "length" (StringLit . (toUpper <$>))
+    )
+  , ( "downcase"
+    , pure . makeStringTransformation "length" (StringLit . (toLower <$>))
+    )
+  -- Boolean operations
   , ("eq"  , pure . eq)
   , ("null", pure . null')
   , ("not" , pure . not')
@@ -41,6 +56,23 @@ null' [List []] = Right $ Boolean True
 null' [_      ] = Right $ Boolean False
 null' _ =
   Left "Invalid number of arguments. 'null' expects exactly one argument"
+
+
+makeStringTransformation :: Name
+                         -> (String -> Expr)
+                         -> [Expr]
+                         -> Either String Expr
+makeStringTransformation _ op [StringLit s] = Right $ op s
+makeStringTransformation n _ [_] =
+  Left
+    $  "Invalid argument type. Function '"
+    ++ n
+    ++ "' is applicable only on strings"
+makeStringTransformation n _ _ =
+  Left
+    $  "Invalid number of arguments. Function '"
+    ++ n
+    ++ "' can be applied to only one argument"
 
 makeBooleanBinOp :: Name
                  -> (Integer -> Integer -> Bool)

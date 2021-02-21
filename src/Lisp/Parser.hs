@@ -21,6 +21,15 @@ integer = positive <|> negative
 identifier :: ParsecT String u Identity String
 identifier = many1 (letter <|> digit <|> oneOf "-+*/%=<>")
 
+-- Ref: https://stackoverflow.com/questions/24106314/parser-for-quoted-string-using-parsec
+stringLiteral :: ParsecT String u Identity String
+stringLiteral = char '"' *> many character <* char '"'
+  where
+    character = nonEscape <|> escape
+    nonEscape = noneOf "\\\"\0\n\r\v\t\b\f"
+    escape    = char '\\' *> oneOf "\\\"0nrvtbf" -- all the characters which can be escaped
+
+
 -- Expression parsers
 
 atom :: ParsecT String u Identity Expr
@@ -33,6 +42,7 @@ atom = foldl1 (<|>) (try <$> atomParsers) -- <?> "Expected atom"
       , string "false" $> Boolean False
       , Number <$> integer
       , Identifier <$> identifier
+      , StringLit <$> stringLiteral
       ]
 
 list :: ParsecT String u Identity Expr

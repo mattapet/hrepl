@@ -15,6 +15,7 @@ spec = do
           [ ([]               , List []       , Right $ List [])
           , ([]               , Boolean True  , Right $ Boolean True)
           , ([]               , Number 1      , Right $ Number 1)
+          , ([]               , StringLit "x" , Right $ StringLit "x")
           , ([], Identifier "x", Left "Found unbound variable 'x'")
           , ([("x", Number 1)], Identifier "x", Right $ Number 1)
           ]
@@ -39,6 +40,28 @@ spec = do
             , ([], makeApp "*" [Number 2, Number 2, Number 2], Right $ Number 8)
             , ([], makeApp "/" [Number 4, Number 2, Number 2], Right $ Number 1)
             , ([], makeApp "mod" [Number 7, Number 4]        , Right $ Number 3)
+            ]
+          )
+        , ( "string operations"
+          , [ ([], makeApp "length" [StringLit "12345"], Right $ Number 5)
+            , ( []
+              , makeApp "length" [Number 2]
+              , Left
+                "Invalid argument type. Function 'length' is applicable only on strings"
+              )
+            , ( []
+              , makeApp "length" []
+              , Left
+                "Invalid number of arguments. Function 'length' can be applied to only one argument"
+              )
+            , ( []
+              , makeApp "upcase" [StringLit "abcd"]
+              , Right $ StringLit "ABCD"
+              )
+            , ( []
+              , makeApp "downcase" [StringLit "ABCD"]
+              , Right $ StringLit "abcd"
+              )
             ]
           )
         , ( "predicates"
@@ -195,20 +218,29 @@ spec = do
         runResult env (eval input) `shouldBe` result
 
   describe "io" $ do
-    let testSuite =
-          [ ( []
-            , (("", "")           , makeApp "write" [Number 1])
-            , (Right (List [], []), ("", "1"))
-            )
-          , ( []
-            , (("", "")           , makeApp "write-line" [Number 1])
-            , (Right (List [], []), ("", "1\n"))
-            )
-          , ( []
-            , (("", "")           , makeApp "write-line" [Boolean True])
-            , (Right (List [], []), ("", "true\n"))
-            )
-          ]
+    let
+      testSuite =
+        [ ( []
+          , (("", "")           , makeApp "write" [Number 1])
+          , (Right (List [], []), ("", "1"))
+          )
+        , ( []
+          , (("", "")           , makeApp "write-line" [Number 1])
+          , (Right (List [], []), ("", "1\n"))
+          )
+        , ( []
+          , (("", "")           , makeApp "write-line" [Boolean True])
+          , (Right (List [], []), ("", "true\n"))
+          )
+        , ( []
+          , (("1", "")                , makeApp "read" [])
+          , (Right (StringLit "1", []), ("", ""))
+          )
+        , ( []
+          , (("some-line\nanother-line", "")  , makeApp "read-line" [])
+          , (Right (StringLit "some-line", []), ("another-line", ""))
+          )
+        ]
 
     forM_ testSuite $ \(env, (s, input), result) ->
       it (printf "should eval %s to %s" (show (s, input)) (show result)) $ do

@@ -3,7 +3,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 
 module Lisp.Eval
-  ( Eval(eval, getEnv, setEnv, write)
+  ( Eval(eval, getEnv, readC, readLine, setEnv, write)
   , ResultT(..)
   , liftResultT
   , liftResultM
@@ -35,6 +35,8 @@ class (Monad m, MonadFail m) => Eval m where
   getEnv :: m Environment
   setEnv :: Environment -> m ()
   write :: String -> m ()
+  readC :: m Char
+  readLine :: m String
 
   -- | Variable lookup retrieves a variable from the entire accessible context.
   --   I.e., current environment as `Right` value, or one of the primitive
@@ -59,16 +61,17 @@ class (Monad m, MonadFail m) => Eval m where
 
   -- Atoms
 
-  eval val@(List    []) = return val
-  eval val@(Boolean _ ) = return val
-  eval val@(Number  _ ) = return val
-  eval val@Func{}       = return val
-  eval (Identifier x)   = lookupVariable' x >>= unpack
+  eval val@(List    [])    = return val
+  eval val@(Boolean _ )    = return val
+  eval val@(Number  _ )    = return val
+  eval val@(StringLit  _ ) = return val
+  eval val@Func{}          = return val
+  eval (Identifier x)      = lookupVariable' x >>= unpack
     where
       -- There is nothing more we can do with primitive value, so we just return
       -- their identifier back
-      unpack (Left  _) = return $ Identifier x
-      unpack (Right e) = eval e
+      unpack (Left  _)     = return $ Identifier x
+      unpack (Right e)     = eval e
 
   -- IO
 
@@ -79,6 +82,9 @@ class (Monad m, MonadFail m) => Eval m where
   eval (List [Identifier "write-line", value]) = do
     _ <- write $ format value ++ "\n"
     return $ List []
+
+  eval (List [Identifier "read"]) = StringLit . (:[]) <$> readC
+  eval (List [Identifier "read-line"]) = StringLit <$> readLine
 
   -- If
 
@@ -159,6 +165,8 @@ instance (Monad m) => MonadFail (ResultT m) where
   fail = liftResultT . Left
 
 instance Eval (ResultT IO) where
-  getEnv = ResultT get
-  setEnv = ResultT . put
-  write  = liftResultM . putStr
+  getEnv   = ResultT get
+  setEnv   = ResultT . put
+  write    = liftResultM . putStr
+  readC    = liftResultM getChar
+  readLine = liftResultM getLine

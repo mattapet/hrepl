@@ -11,11 +11,12 @@ spec :: Spec
 spec = do
   describe "Converting Exprs to strings" $ do
     let testSuites =
-          [ (List []       , "nil")
-          , (Boolean True  , "true")
-          , (Boolean False , "false")
-          , (Number 1234   , "1234")
-          , (Identifier "n", "n")
+          [ (List []                , "nil")
+          , (Boolean True           , "true")
+          , (Boolean False          , "false")
+          , (Number 1234            , "1234")
+          , (Identifier "n"         , "n")
+          , (StringLit "some-string", "\"some-string\"")
           , (List [Identifier "+", Number 1, Number 2], "(+ 1 2)")
           , ( List
               [ Identifier "defun"

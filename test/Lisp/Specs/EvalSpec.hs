@@ -3,7 +3,9 @@ module Lisp.Specs.EvalSpec where
 import           Control.Monad                  ( forM_ )
 import           Data.StateT
 import           Lisp.Core
-import           Lisp.Eval                      ( eval, runResult )
+import           Lisp.Eval                      ( eval
+                                                , runResult
+                                                )
 import           Test.Hspec
 import           Text.Printf                    ( printf )
 
@@ -22,12 +24,12 @@ spec = do
         (fst <$> runResult (eval input) env) `shouldBe` result
 
   describe "primitives application" $ do
-    let makeApp name args = Application (Identifier name) args
+    let makeApp name args = List (Identifier name : args)
     let
       testSuites =
         [ ( "atom applications"
-          , [ ([], Application Nil []       , Left "Type is not callable")
-            , ([], Application (Number 2) [], Left "Type is not callable")
+          , [ ([], List [Nil]     , Left "Type is not callable")
+            , ([], List [Number 2], Left "Type is not callable")
             ]
           )
         , ( "numeric operations"
@@ -130,11 +132,18 @@ spec = do
           (fst <$> runResult (eval input) env) `shouldBe` result
 
   describe "functions" $ do
-    let makeApp name args = Application (Identifier name) args
+    let makeApp name args = List (Identifier name : args)
+    let defun name args body =
+          List
+            [ Identifier "defun"
+            , Identifier name
+            , List (Identifier <$> args)
+            , body
+            ]
     let
       testSuit =
         [ ( []
-          , FuncDef "id" ["a"] (Identifier "a")
+          , defun "id" ["a"] (Identifier "a")
           , Right
             ( Func [] ["a"] (Identifier "a")
             , [("id", Func [] ["a"] (Identifier "a"))]

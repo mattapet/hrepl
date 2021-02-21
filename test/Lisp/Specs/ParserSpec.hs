@@ -35,12 +35,14 @@ spec = do
   describe "applications" $ do
     let
       testSuites =
-        [ ("(a)"    , Application (Identifier "a") [])
-        , ("(+ 1 2)", Application (Identifier "+") [Number 1, Number 2])
+        [ ("(a)"    , List [Identifier "a"])
+        , ("(+ 1 2)", List [Identifier "+", Number 1, Number 2])
         , ( "(+ 1 (+ 1 2))"
-          , Application
-            (Identifier "+")
-            [Number 1, Application (Identifier "+") [Number 1, Number 2]]
+          , List
+            [ Identifier "+"
+            , Number 1
+            , List [Identifier "+", Number 1, Number 2]
+            ]
           )
         ]
 
@@ -51,11 +53,13 @@ spec = do
 
   describe "functions" $ do
     let testSuites =
-          [ ( "(defun f [a b] (+ a b))"
-            , FuncDef
-              "f"
-              ["a", "b"]
-              (Application (Identifier "+") [Identifier "a", Identifier "b"])
+          [ ( "(defun f (a b) (+ a b))"
+            , List
+              [ Identifier "defun"
+              , Identifier "f"
+              , List [Identifier "a", Identifier "b"]
+              , List [Identifier "+", Identifier "a", Identifier "b"]
+              ]
             )
           ]
     forM_ testSuites $ \(input, result) ->

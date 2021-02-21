@@ -7,29 +7,23 @@ data Expr =
   | Boolean Bool
   | Number Integer
   | Identifier Name
-  | Application Expr [Expr]
-  | FuncDef Name [Name] Expr
+  | List [Expr]
   | Func Environment [Name] Expr
 
 instance Show Expr where
-  show Nil                   = "Nil "
+  show Nil                   = "Nil"
   show (Boolean    x       ) = "Boolean " ++ show x
   show (Number     x       ) = "Number " ++ show x
   show (Identifier x       ) = "Identifier " ++ show x
-  show (Application op args) = "Application " ++ show op ++ " " ++ show args
-  show (FuncDef name args body) =
-    "FuncDef " ++ show name ++ " " ++ show args ++ " " ++ show body
-  show (Func _ args body) = "Func " ++ show args ++ " " ++ show body
+  show (List       contents) = "List " ++ show contents
+  show (Func _ args body   ) = "Func " ++ show args ++ " " ++ show body
 
 instance Eq Expr where
-  Nil            == Nil            = True
-  (Boolean    x) == (Boolean    y) = x == y
-  (Number     x) == (Number     y) = x == y
-  (Identifier x) == (Identifier y) = x == y
-  (Application xOp xArgs) == (Application yOp yArgs) =
-    xOp == yOp && xArgs == yArgs
-  (FuncDef xName xArgs xBody) == (FuncDef yName yArgs yBody) =
-    xName == yName && xArgs == yArgs && xBody == yBody
+  Nil             == Nil             = True
+  (Boolean    x ) == (Boolean    y ) = x == y
+  (Number     x ) == (Number     y ) = x == y
+  (Identifier x ) == (Identifier y ) = x == y
+  (List       xs) == (List       ys) = xs == ys
   (Func _ xArgs xBody) == (Func _ yArgs yBody) =
     xArgs == yArgs && xBody == yBody
   _ == _ = False
@@ -46,11 +40,6 @@ format (Boolean    True ) = "true"
 format (Boolean    False) = "false"
 format (Number     x    ) = show x
 format (Identifier n    ) = n
-format (Application x xs) = "(" ++ unwords (format <$> (x : xs)) ++ ")"
+format (List       xs   ) = "(" ++ unwords (format <$> xs) ++ ")"
 format (Func _ args _   ) = "<λ" ++ args' ++ ">"
   where args' = " [" ++ unwords args ++ "]"
-
-format (FuncDef name args body) = "(defun " ++ name ++ args' ++ body' ++ ")"
-  where
-    args' = " [" ++ unwords args ++ "] "
-    body' = format body

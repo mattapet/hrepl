@@ -75,22 +75,36 @@ eval (Identifier x)  = lookupVariable x >>= unpack
 
 -- If
 
-eval (Application (Identifier "if") [cond', then', else']) =
-  eval cond' >>= \case
-    Boolean True -> eval then'
-    Boolean False -> eval else'
-    _ -> failWith "Invalid argument type. Condition must evaluate to Boolean"
-eval (Application (Identifier "if") _) =
+eval (List [Identifier "if", cond', then', else']) = eval cond' >>= \case
+  Boolean True -> eval then'
+  Boolean False -> eval else'
+  _ -> failWith "Invalid argument type. Condition must evaluate to Boolean"
+eval (List ((Identifier "if") : _)) =
   failWith "Invalid number of arguments. 'if' expects exactly three arguments"
+
+-- Function declaration
+eval (List [Identifier "defun", Identifier name, List args, body]) = do
+  env   <- get
+  args' <- unpackArgs args
+  let func = Func env' args' body
+      env' = (name, func) : env
+  put env' >> return func
+  where
+    unpackArgs = traverse
+      (\case
+        Identifier n -> return n
+        _            -> liftS $ liftE $ Left ""
+      )
+eval (List ((Identifier "defun") : _ )) = undefined
 
 
 -- Applications
-eval (Application (Identifier op) xs) = lookupVariable op >>= eval'
+eval (List ((Identifier op     ) : xs)) = lookupVariable op >>= eval'
   where
     eval' (Left  prim) = traverse eval xs >>= liftS . prim
-    eval' (Right val ) = eval (Application val xs)
+    eval' (Right val ) = eval (List (val : xs))
 
-eval (Application (Func e args body) xs) = bindArguments
+eval (List ((Func e args body) : xs)) = bindArguments
   >>= evaluateInContext body
   where
     bindArguments
@@ -102,11 +116,4 @@ eval (Application (Func e args body) xs) = bindArguments
         ++ ", received "
         ++ show (length xs)
 
-eval (Application _ _       ) = failWith "Type is not callable"
-
--- Function declaration
-eval (FuncDef name args body) = do
-  env <- get
-  let func = Func env' args body
-      env' = (name, func) : env
-  put env' >> return func
+eval (List _) = failWith "Type is not callable"

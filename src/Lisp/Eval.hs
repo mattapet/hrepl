@@ -43,7 +43,7 @@ failWith = liftS . throwError
 -- | Variable lookup retrieves a variable from the entire accessible context.
 --   I.e., current environment as right value, or one of the primitive functions
 --   as left value.
-lookupVariable :: (Monad m) => Name -> Result m (Either Primitive Expr)
+lookupVariable :: (Monad m) => Name -> Result m (Either (Primitive m) Expr)
 lookupVariable n = do
   env <- get
   convertToState ((Right <$> lookup n env) <|> (Left <$> lookup n primitives))
@@ -86,7 +86,7 @@ eval (Application (Identifier "if") _) =
 -- Applications
 eval (Application (Identifier op) xs) = lookupVariable op >>= eval'
   where
-    eval' (Left  prim) = traverse eval xs >>= liftS . liftE . prim
+    eval' (Left  prim) = traverse eval xs >>= liftS . prim
     eval' (Right val ) = eval (Application val xs)
 
 eval (Application (Func e args body) xs) = bindArguments

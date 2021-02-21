@@ -5,25 +5,26 @@ module Lisp.Primitives
   , Primitive
   ) where
 
+import           Data.ExceptT
 import           Lisp.Core
 
-type Primitive = [Expr] -> Either String Expr
+type Primitive m = [Expr] -> ExceptT String m Expr
 
-primitives :: [(Name, Primitive)]
+primitives :: (Applicative m) => [(Name, Primitive m)]
 primitives =
-  [ ("+"   , makeNumberBinOp "+" (+))
-  , ("-"   , makeNumberBinOp "-" (-))
-  , ("*"   , makeNumberBinOp "*" (*))
-  , ("/"   , makeNumberBinOp "/" div)
-  , ("mod" , makeNumberBinOp "mod" rem)
-  , ("eq"  , eq)
-  , ("null", null')
-  , ("not" , not')
-  , ("="   , makeBooleanBinOp "=" (==))
-  , ("<"   , makeBooleanBinOp "<" (<))
-  , ("<="  , makeBooleanBinOp "<=" (<=))
-  , (">"   , makeBooleanBinOp ">" (>))
-  , (">="  , makeBooleanBinOp ">=" (>=))
+  [ ("+"   , liftE . makeNumberBinOp "+" (+))
+  , ("-"   , liftE . makeNumberBinOp "-" (-))
+  , ("*"   , liftE . makeNumberBinOp "*" (*))
+  , ("/"   , liftE . makeNumberBinOp "/" div)
+  , ("mod" , liftE . makeNumberBinOp "mod" rem)
+  , ("eq"  , liftE . eq)
+  , ("null", liftE . null')
+  , ("not" , liftE . not')
+  , ("="   , liftE . makeBooleanBinOp "=" (==))
+  , ("<"   , liftE . makeBooleanBinOp "<" (<))
+  , ("<="  , liftE . makeBooleanBinOp "<=" (<=))
+  , (">"   , liftE . makeBooleanBinOp ">" (>))
+  , (">="  , liftE . makeBooleanBinOp ">=" (>=))
   ]
 
 

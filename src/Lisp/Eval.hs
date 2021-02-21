@@ -69,6 +69,7 @@ class (Monad m, MonadFail m) => Eval m where
   eval val@(Number  _ )    = return val
   eval val@(StringLit  _ ) = return val
   eval val@Func{}          = return val
+  eval val@Quote{}         = return val
   eval (Identifier x)      = lookupVariable' x >>= unpack
     where
       -- There is nothing more we can do with primitive value, so we just return

@@ -26,6 +26,7 @@ spec = do
               ]
             , "(defun f (a b) (+ a b))"
             )
+          , (Quote $ List [Number 1, Number 2], "quote (1 2)")
           ]
     forM_ testSuites $ \(input, result) ->
       it (printf "should convert %s to %s" (show input) (show result)) $ do

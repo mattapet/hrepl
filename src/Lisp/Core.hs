@@ -7,12 +7,14 @@ data Expr =
   | Number Integer
   | Identifier Name
   | StringLit String
+  | Quote Expr
   | List [Expr]
   | Func Environment [Name] Expr
 
 instance Show Expr where
   show (Boolean    x       ) = "Boolean " ++ show x
   show (Number     x       ) = "Number " ++ show x
+  show (Quote      x       ) = "Quote " ++ show x
   show (Identifier x       ) = "Identifier " ++ show x
   show (StringLit  x       ) = "StringLit " ++ show x
   show (List       contents) = "List " ++ show contents
@@ -23,6 +25,7 @@ instance Eq Expr where
   (Number     x ) == (Number     y ) = x == y
   (Identifier x ) == (Identifier y ) = x == y
   (StringLit  x ) == (StringLit  y ) = x == y
+  (Quote      x ) == (Quote      y ) = x == y
   (List       xs) == (List       ys) = xs == ys
   (Func _ xArgs xBody) == (Func _ yArgs yBody) =
     xArgs == yArgs && xBody == yBody
@@ -40,6 +43,7 @@ format (Boolean    False) = "false"
 format (Number     x    ) = show x
 format (Identifier x    ) = x
 format (StringLit  x    ) = x
+format (Quote      x    ) = "quote " ++ format x
 format (List       []   ) = "nil"
 format (List       xs   ) = "(" ++ unwords (format <$> xs) ++ ")"
 format (Func _ args _   ) = "<λ" ++ args' ++ ">"

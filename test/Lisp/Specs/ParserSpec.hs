@@ -25,6 +25,7 @@ spec = do
         , ("\"\""                      , List [StringLit ""])
         , ("\"str-literal\""           , List [StringLit "str-literal"])
         , ("\"escaped-\\\"string\\\"\"", List [StringLit "escaped-\"string\""])
+        , ("'(1 2 3 4 5)", List [Quote $ List $ Number <$> [1 .. 5]])
         ]
     forM_ testSuites $ \(input, result) ->
       it (printf "should parse %s to %s" (show input) (show result)) $ do

@@ -18,6 +18,10 @@ spec = do
           , ([]               , StringLit "x" , Right $ StringLit "x")
           , ([], Identifier "x", Left "Found unbound variable 'x'")
           , ([("x", Number 1)], Identifier "x", Right $ Number 1)
+          , ( []
+            , Quote $ List [Number 1, Number 2]
+            , Right $ Quote $ List [Number 1, Number 2]
+            )
           ]
     forM_ testSuite $ \(env, input, result) ->
       it (printf "should evaluate %s to %s" (show input) (show result)) $ do
@@ -64,6 +68,55 @@ spec = do
               )
             ]
           )
+        , ( "string operations"
+          , [ ( []
+              , makeApp "cons" [Number 1, List []]
+              , Right $ Quote $ List [Number 1]
+              )
+            , ( []
+              , makeApp "cons" [Number 1, Quote $ List [Number 2]]
+              , Right $ Quote $ List [Number 1, Number 2]
+              )
+            , ([], makeApp "cons" [Number 1], Right $ Quote $ List [Number 1])
+            , ( []
+              , makeApp "cons" []
+              , Left
+                "Invalid number of arguments. 'cons' expects one or two arguments"
+              )
+            , ( []
+              , makeApp "car" [Quote $ List [Number 1, Number 2]]
+              , Right $ Number 1
+              )
+            , ([], makeApp "car" [Quote $ List []], Right $ List [])
+            , ([], makeApp "car" [List []]        , Right $ List [])
+            , ( []
+              , makeApp "car" [Number 1]
+              , Left
+                "Invalid argument type. 'car' operator can only be used on lists"
+              )
+            , ( []
+              , makeApp "car" [List [], List []]
+              , Left
+                "Invalid number of arguments type. 'car' expects exactly one argument"
+              )
+            , ( []
+              , makeApp "cdr" [Quote $ List [Number 1, Number 2]]
+              , Right $ Quote $ List [Number 2]
+              )
+            , ([], makeApp "cdr" [Quote $ List []], Right $ List [])
+            , ([], makeApp "cdr" [List []]        , Right $ List [])
+            , ( []
+              , makeApp "cdr" [Number 1]
+              , Left
+                "Invalid argument type. 'cdr' operator can only be used on lists"
+              )
+            , ( []
+              , makeApp "cdr" [List [], List []]
+              , Left
+                "Invalid number of arguments type. 'cdr' expects exactly one argument"
+              )
+            ]
+          )
         , ( "predicates"
           , [ ( []
               , makeApp "eq" [Boolean True, Boolean True]
@@ -84,8 +137,9 @@ spec = do
               , Left
                 "Invalid number of arguments. 'eq' expects exactly two arguments"
               )
-            , ([], makeApp "null" [List []] , Right $ Boolean True)
-            , ([], makeApp "null" [Number 1], Right $ Boolean False)
+            , ([], makeApp "null" [List []]        , Right $ Boolean True)
+            , ([], makeApp "null" [Quote $ List []], Right $ Boolean True)
+            , ([], makeApp "null" [Number 1]       , Right $ Boolean False)
             , ( []
               , makeApp "null" []
               , Left

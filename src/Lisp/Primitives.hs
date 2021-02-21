@@ -30,6 +30,10 @@ primitives =
   , ( "downcase"
     , pure . makeStringTransformation "length" (StringLit . (toLower <$>))
     )
+  -- List operations
+  , ("cons", pure . cons)
+  , ("car" , pure . car)
+  , ("cdr" , pure . cdr)
   -- Boolean operations
   , ("eq"  , pure . eq)
   , ("null", pure . null')
@@ -41,7 +45,6 @@ primitives =
   , (">="  , pure . makeBooleanBinOp ">=" (>=))
   ]
 
-
 eq :: [Expr] -> Either String Expr
 eq [lhs, rhs] = Right $ Boolean $ lhs == rhs
 eq _ = Left "Invalid number of arguments. 'eq' expects exactly two arguments"
@@ -52,11 +55,37 @@ not' [_] = Left "Invalid argument type. 'not' expects boolean argument"
 not' _ = Left "Invalid number of arguments. 'not' expects exactly one argument"
 
 null' :: [Expr] -> Either String Expr
-null' [List []] = Right $ Boolean True
-null' [_      ] = Right $ Boolean False
+null' [List  []       ] = Right $ Boolean True
+null' [Quote (List [])] = Right $ Boolean True
+null' [_              ] = Right $ Boolean False
 null' _ =
   Left "Invalid number of arguments. 'null' expects exactly one argument"
 
+cons :: [Expr] -> Either String Expr
+cons [value]                  = Right $ Quote $ List [value]
+cons [value, List xs        ] = Right $ Quote $ List (value : xs)
+cons [value, Quote (List xs)] = Right $ Quote $ List (value : xs)
+cons _ =
+  Left "Invalid number of arguments. 'cons' expects one or two arguments"
+
+car :: [Expr] -> Either String Expr
+car [Quote (List (x : _))] = Right x
+car [Quote (List []     )] = Right $ List []
+car [List  []            ] = Right $ List []
+car [_] =
+  Left "Invalid argument type. 'car' operator can only be used on lists"
+car _ =
+  Left "Invalid number of arguments type. 'car' expects exactly one argument"
+
+cdr :: [Expr] -> Either String Expr
+cdr [Quote (List []      )] = Right $ List []
+cdr [Quote (List [_     ])] = Right $ List []
+cdr [Quote (List (_ : xs))] = Right $ Quote $ List xs
+cdr [List  []             ] = Right $ List []
+cdr [_] =
+  Left "Invalid argument type. 'cdr' operator can only be used on lists"
+cdr _ =
+  Left "Invalid number of arguments type. 'cdr' expects exactly one argument"
 
 makeStringTransformation :: Name
                          -> (String -> Expr)

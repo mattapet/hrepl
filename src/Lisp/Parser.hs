@@ -41,8 +41,9 @@ atom = foldl1 (<|>) (try <$> atomParsers) -- <?> "Expected atom"
       , string "true" $> Boolean True
       , string "false" $> Boolean False
       , Number <$> integer
-      , Identifier <$> identifier
       , StringLit <$> stringLiteral
+      , Quote <$> (char '\'' *> list)
+      , Identifier <$> identifier
       ]
 
 list :: ParsecT String u Identity Expr

@@ -221,10 +221,7 @@ spec = do
       testSuit =
         [ ( []
           , defun "id" ["a"] (Identifier "a")
-          , Right
-            ( Func [] ["a"] (List [Identifier "a"])
-            , [("id", Func [] ["a"] (List [Identifier "a"]))]
-            )
+          , Right (List [], [("id", Func [] ["a"] (List [Identifier "a"]))])
           )
         , ( [("id", Func [] ["a"] (Identifier "a"))]
           , makeApp "id" [Number 1]

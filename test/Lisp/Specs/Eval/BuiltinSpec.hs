@@ -43,10 +43,7 @@ spec = do
       testSuit =
         [ ( []
           , defun "id" ["a"] (Identifier "a")
-          , Right
-            ( Func [] ["a"] (List [Identifier "a"])
-            , [("id", Func [] ["a"] (List [Identifier "a"]))]
-            )
+          , Right (List [], [("id", Func [] ["a"] (List [Identifier "a"]))])
           )
         , ( [("id", Func [] ["a"] (Identifier "a"))]
           , makeApp "id" [Number 1]
@@ -93,6 +90,39 @@ spec = do
       it (printf "should evaluate %s to %s" (show input) (show result)) $ do
         runResult env (eval input) `shouldBe` result
 
+  describe "function passing" $ do
+    let
+      env =
+        [ ( "flip"
+          , Func
+            []
+            ["f_$1"]
+            (List
+              [ List
+                  [ Identifier "lambda"
+                  , List [Identifier "x_$1", Identifier "y_$1"]
+                  , List
+                    [ List
+                        [ Identifier "f_$1"
+                        , Identifier "y_$1"
+                        , Identifier "x_$1"
+                        ]
+                    ]
+                  ]
+              ]
+            )
+          )
+        , ( "ff"
+          , Func
+            []
+            ["a", "b"]
+            (makeApp "cons" [Identifier "a", makeApp "cons" [Identifier "b"]])
+          )
+        ]
+    let input  = List [makeApp "flip" [Identifier "ff"], Number 1, Number 2]
+    let result = Right (Quote $ List [Number 2, Number 1], env)
+    it "should flip function arguments" $ do
+      runResult env (eval input) `shouldBe` result
 
   describe "let binging" $ do
     let testSuite =

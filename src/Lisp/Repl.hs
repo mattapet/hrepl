@@ -11,6 +11,8 @@ import           Lisp.Eval
 import           Lisp.Parser
 import           System.IO
 
+import           Lisp.Renamer                   ( rename )
+
 class (Monad m, Eval (ResultT m)) => Repl m where
   read' :: m String
   print' :: String -> m ()
@@ -21,7 +23,7 @@ class (Monad m, Eval (ResultT m)) => Repl m where
       Right (x, env') -> print' x >> return env'
       Left err -> print' err >> return env
     where
-      runEval = liftResultT . parseExpr >=> eval >=> return . format
+      runEval = liftResultT . parseExpr >=> liftResultT . rename >=> eval >=> return . format
 
 loop :: (Repl m) => Environment -> m ()
 loop env = do

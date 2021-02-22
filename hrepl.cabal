@@ -34,6 +34,7 @@ library
       Lisp.Eval
       Lisp.Parser
       Lisp.Primitives
+      Lisp.Renamer
       Lisp.Repl
       StringCalc
   other-modules:
@@ -70,6 +71,7 @@ test-suite test
       Lisp.Specs.CoreSpec
       Lisp.Specs.Eval.BuiltinSpec
       Lisp.Specs.Eval.PrimitivesSpec
+      Lisp.Specs.Eval.RenamerSpec
       Lisp.Specs.EvalSpec
       Lisp.Specs.ParserSpec
       StringCalcSpec

@@ -133,7 +133,7 @@ eval (List (Identifier "defun" : Identifier name : List args : body)) = do
   args' <- unpackArgs args
   let func = Func env' args' (List body)
       env' = (name, func) : env
-  setEnv env' >> return func
+  setEnv env' >> return (List [])
   where
     unpackArgs = traverse unpackArg
     unpackArg (Identifier n) = return n
@@ -158,7 +158,9 @@ eval (List ((Func e args body) : xs)) = do
       | otherwise                = fail $ invalidNumberOfArguments args xs
 
 eval (List [x     ]) = eval x
-eval (List (x : xs)) = eval x >> eval (List xs)
+eval (List (x : xs)) = do
+  x' <- eval x
+  if x == x' then eval (List xs) else eval (List (x' : xs))
 
 
 -- Error messages

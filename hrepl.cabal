@@ -72,7 +72,6 @@ test-suite test
       Lisp.Specs.Eval.BuiltinSpec
       Lisp.Specs.Eval.PrimitivesSpec
       Lisp.Specs.Eval.RenamerSpec
-      Lisp.Specs.EvalSpec
       Lisp.Specs.ParserSpec
       StringCalcSpec
       Paths_hrepl

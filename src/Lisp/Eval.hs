@@ -154,8 +154,10 @@ eval (List ((Func e args body) : xs)) = do
   bindArguments >>= evaluateInContext body
   where
     bindArguments
-      | length args == length xs = (++ e) . zip args <$> traverse eval xs
-      | otherwise                = fail $ invalidNumberOfArguments args xs
+      | length args == length xs = do
+        env <- getEnv
+        (++ (e ++ env)) . zip args <$> traverse eval xs
+      | otherwise = fail $ invalidNumberOfArguments args xs
 
 eval (List [x     ]) = eval x
 eval (List (x : xs)) = do

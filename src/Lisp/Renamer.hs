@@ -25,18 +25,18 @@ rename' (    Quote      e) = Quote <$> rename' e
 
 rename' (    Identifier x) = Identifier <$> renameIdentifier x
 
-rename' (List [Identifier "defun", Identifier n, List args, body]) = do
+rename' (List (Identifier "defun" : Identifier n : List args : body)) = do
   (args', body') <- renameContext args body
-  return (List [Identifier "defun", Identifier n, List args', body'])
+  return (List (Identifier "defun" : Identifier n : List args' : body'))
 
-rename' (List [Identifier "lambda", List args, body]) = do
+rename' (List (Identifier "lambda" : List args : body)) = do
   (args', body') <- renameContext args body
-  return (List [Identifier "lambda", List args', body'])
+  return (List (Identifier "lambda" : List args' : body'))
 
-rename' (List [Identifier "let", List bindings, body]) = do
+rename' (List (Identifier "let" : List bindings : body)) = do
   (args , bindings') <- unzip <$> unpackBindings bindings
   (args', body'    ) <- renameContext args body
-  return (List [Identifier "let", List $ bind $ zip args' bindings', body'])
+  return (List (Identifier "let" : List (bind $ zip args' bindings') : body'))
   where
     unpackBindings = traverse unpackBinding
     unpackBinding (List (x : xs)) =
@@ -47,12 +47,12 @@ rename' (List [Identifier "let", List bindings, body]) = do
 
 rename' (List xs) = List <$> traverse rename' xs
 
-renameContext :: [Expr] -> Expr -> Result ([Expr], Expr)
+renameContext :: [Expr] -> [Expr] -> Result ([Expr], [Expr])
 renameContext args body = do
   env   <- get
   _     <- scopeArguments args
   args' <- traverse rename' args
-  body' <- rename' body
+  body' <- traverse rename' body
   _     <- put env
   return (args', body')
 

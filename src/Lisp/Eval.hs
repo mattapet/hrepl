@@ -3,7 +3,8 @@
 {-# LANGUAGE FlexibleInstances #-}
 
 module Lisp.Eval
-  ( Eval(eval, getEnv, readC, readLine, setEnv, write)
+  ( Eval(getEnv, readC, readLine, setEnv, write)
+  , eval
   , ResultT(..)
   , liftResultT
   , liftResultM
@@ -41,125 +42,123 @@ class (Monad m, MonadFail m) => Eval m where
   readC :: m Char
   readLine :: m String
 
-  -- | Variable lookup retrieves a variable from the entire accessible context.
-  --   I.e., current environment as `Right` value, or one of the primitive
-  --   functions as `Left` value.
-  lookupVariable' :: Name -> m (Either (Primitive m) Expr)
-  lookupVariable' n = do
-    env <- getEnv
-    convertToState ((Right <$> lookup n env) <|> (Left <$> lookup n primitives))
-    where
-      convertToState = maybe unboundError return
-      unboundError   = fail $ unboundVariableFound n
+-- | Variable lookup retrieves a variable from the entire accessible context.
+--   I.e., current environment as `Right` value, or one of the primitive
+--   functions as `Left` value.
+lookupVariable :: (Eval m) => Name -> m (Either (Primitive m) Expr)
+lookupVariable n = do
+  env <- getEnv
+  convertToState ((Right <$> lookup n env) <|> (Left <$> lookup n primitives))
+  where
+    convertToState = maybe unboundError return
+    unboundError   = fail $ unboundVariableFound n
 
-  evaluateInContext :: Expr -> Environment -> m Expr
-  evaluateInContext content context = do
-    currentEnv <- getEnv
-    result     <- setEnv context >> eval content
-    setEnv currentEnv >> return result
+evaluateInContext :: (Eval m) => Expr -> Environment -> m Expr
+evaluateInContext content context = do
+  currentEnv <- getEnv
+  result     <- setEnv context >> eval content
+  setEnv currentEnv >> return result
 
-  -- Evaluation
+-- Evaluation
 
-  eval :: Expr -> m Expr
+eval :: (Eval m) => Expr -> m Expr
 
-  -- Atoms
+-- Atoms
 
-  eval val@(List    [])    = return val
-  eval val@(Boolean _ )    = return val
-  eval val@(Number  _ )    = return val
-  eval val@(StringLit  _ ) = return val
-  eval val@Func{}          = return val
-  eval val@Quote{}         = return val
-  eval (Identifier x)      = lookupVariable' x >>= unpack
-    where
-      -- There is nothing more we can do with primitive value, so we just return
-      -- their identifier back
-      unpack (Left  _)     = return $ Identifier x
-      unpack (Right e)     = eval e
+eval val@(List      []) = return val
+eval val@(Boolean   _ ) = return val
+eval val@(Number    _ ) = return val
+eval val@(StringLit _ ) = return val
+eval val@Func{}         = return val
+eval val@Quote{}        = return val
+eval (Identifier x)     = lookupVariable x >>= unpack
+  where
+    -- There is nothing more we can do with primitive value, so we just return
+    -- their identifier back
+    unpack (Left  _) = return $ Identifier x
+    unpack (Right e) = eval e
 
-  -- IO
+-- IO
 
-  eval (List [Identifier "write", expr]) = do
-    value <- eval expr
-    _ <- write (format value)
-    return $ List []
+eval (List [Identifier "write", expr]) = do
+  value <- eval expr
+  _     <- write (format value)
+  return $ List []
 
-  eval (List [Identifier "write-line", expr]) = do
-    value <- eval expr
-    _ <- write $ format value ++ "\n"
-    return $ List []
+eval (List [Identifier "write-line", expr]) = do
+  value <- eval expr
+  _     <- write $ format value ++ "\n"
+  return $ List []
 
-  eval (List [Identifier "read"]) = StringLit . (:[]) <$> readC
-  eval (List [Identifier "read-line"]) = StringLit <$> readLine
+eval (List [Identifier "read"]) = StringLit . (: []) <$> readC
+eval (List [Identifier "read-line"]) = StringLit <$> readLine
 
-  -- If
+-- If
 
-  eval (List [Identifier "if", cond', then', else']) = eval cond' >>= \case
-    Boolean True -> eval then'
-    Boolean False -> eval else'
-    _ -> fail ifInvalidArgumentType
-  eval (List ((Identifier "if") : _)) = fail ifInvalidNumberOfArguments
+eval (List [Identifier "if", cond', then', else']) = eval cond' >>= \case
+  Boolean True  -> eval then'
+  Boolean False -> eval else'
+  _             -> fail ifInvalidArgumentType
+eval (List ((Identifier "if") : _)) = fail ifInvalidNumberOfArguments
 
-  -- Let
+-- Let
 
-  eval (List [Identifier "let", List bindings, body]) = do
-    env   <- getEnv
-    (names, values) <- unzip <$> unpackBindings bindings
-    eval $ List $ Func env names body : values
-    where
-      unpackBindings = traverse unpackBinding
-      unpackBinding (Identifier x) = return (x, List [])
-      unpackBinding (List [Identifier x, value]) = return (x, value)
-      unpackBinding _ = fail invalidLetBindingSymbol
+eval (List [Identifier "let", List bindings, body]) = do
+  env             <- getEnv
+  (names, values) <- unzip <$> unpackBindings bindings
+  eval $ List $ Func env names body : values
+  where
+    unpackBindings = traverse unpackBinding
+    unpackBinding (Identifier x) = return (x, List [])
+    unpackBinding (List [Identifier x, value]) = return (x, value)
+    unpackBinding _ = fail invalidLetBindingSymbol
 
-  -- Lambda definition declaration
+-- Lambda definition declaration
 
-  eval (List (Identifier "lambda" : List args : body)) = do
-    env   <- getEnv
-    args' <- unpackArgs args
-    return $ Func env args' (List body)
-    where
-      unpackArgs = traverse unpackArg
-      unpackArg (Identifier n) = return n
-      unpackArg _              = fail invalidLambdaMissingIdentifier
+eval (List (Identifier "lambda" : List args : body)) = do
+  env   <- getEnv
+  args' <- unpackArgs args
+  return $ Func env args' (List body)
+  where
+    unpackArgs = traverse unpackArg
+    unpackArg (Identifier n) = return n
+    unpackArg _              = fail invalidLambdaMissingIdentifier
 
-  eval (List ((Identifier "lambda") : _)) =
-    fail invalidLambda
+eval (List ((Identifier "lambda")         : _   )) = fail invalidLambda
 
-  -- Function declaration
+-- Function declaration
 
-  eval (List (Identifier "defun" : Identifier name : List args : body)) = do
-    env   <- getEnv
-    args' <- unpackArgs args
-    let func = Func env' args' (List body)
-        env' = (name, func) : env
-    setEnv env' >> return func
-    where
-      unpackArgs = traverse unpackArg
-      unpackArg (Identifier n) = return n
-      unpackArg _              = fail invalidFuncDefMissingIdentifier
+eval (List (Identifier "defun" : Identifier name : List args : body)) = do
+  env   <- getEnv
+  args' <- unpackArgs args
+  let func = Func env' args' (List body)
+      env' = (name, func) : env
+  setEnv env' >> return func
+  where
+    unpackArgs = traverse unpackArg
+    unpackArg (Identifier n) = return n
+    unpackArg _              = fail invalidFuncDefMissingIdentifier
 
-  eval (List ((Identifier "defun") : _)) =
-    fail invalidFuncDef
+eval (List ((Identifier "defun") : _ )) = fail invalidFuncDef
 
 
-  -- Applications
-  eval (List ((Identifier op) : xs)) = lookupVariable' op >>= eval'
-    where
-      eval' (Left prim) = traverse eval xs >>= prim >>= \case
-        Right x -> return x
-        Left  e -> fail e
-      eval' (Right val) = eval (List (val : xs))
+-- Applications
+eval (List ((Identifier op     ) : xs)) = lookupVariable op >>= eval'
+  where
+    eval' (Left prim) = traverse eval xs >>= prim >>= \case
+      Right x -> return x
+      Left  e -> fail e
+    eval' (Right val) = eval (List (val : xs))
 
-  eval (List ((Func e args body) : xs)) = bindArguments
-    >>= evaluateInContext body
-    where
-      bindArguments
-        | length args == length xs = (++ e) . zip args <$> traverse eval xs
-        | otherwise                = fail $ invalidNumberOfArguments args xs
+eval (List ((Func e args body) : xs)) = do
+  bindArguments >>= evaluateInContext body
+  where
+    bindArguments
+      | length args == length xs = (++ e) . zip args <$> traverse eval xs
+      | otherwise                = fail $ invalidNumberOfArguments args xs
 
-  eval (List [x     ]) = eval x
-  eval (List (x : xs)) = eval x >> eval (List xs)
+eval (List [x     ]) = eval x
+eval (List (x : xs)) = eval x >> eval (List xs)
 
 
 -- Error messages

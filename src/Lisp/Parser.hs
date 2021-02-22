@@ -10,10 +10,8 @@ import           Text.Parsec
 -- utility parsers
 
 ignoreChars :: ParsecT String u Identity ()
-ignoreChars = spaces >> comments >> spaces
-  where
-    comments =
-      optional (string ";;" >> manyTill anyChar newline >> spaces >> return ())
+ignoreChars = void $ many $ void comment <|> void space
+  where comment = string ";;" >> anyChar `manyTill` newline
 
 parens :: ParsecT String u Identity a -> ParsecT String u Identity a
 parens p = char '(' *> ignoreChars *> p <* ignoreChars <* char ')'

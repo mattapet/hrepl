@@ -124,7 +124,7 @@ spec = do
     it "should flip function arguments" $ do
       runResult env (eval input) `shouldBe` result
 
-  describe "let binging" $ do
+  describe "let binding" $ do
     let testSuite =
           [ ( []
             , makeApp "let" [List [Identifier "a"], Identifier "a"]
@@ -175,38 +175,3 @@ spec = do
     forM_ testSuite $ \(env, input, result) ->
       it (printf "should evaluate %s to %s" (show input) (show result)) $ do
         (fst <$> runResult env (eval input)) `shouldBe` result
-
-  describe "io" $ do
-    let
-      testSuite =
-        [ ( []
-          , (("", "")           , makeApp "write" [Number 1])
-          , (Right (List [], []), ("", "1"))
-          )
-        , ( []
-          , (("", "")           , makeApp "write-line" [Number 1])
-          , (Right (List [], []), ("", "1\n"))
-          )
-        , ( [("greeting", StringLit "Hello World!")]
-          , (("", ""), makeApp "write-line" [Identifier "greeting"])
-          , ( Right (List [], [("greeting", StringLit "Hello World!")])
-            , ("", "Hello World!\n")
-            )
-          )
-        , ( []
-          , (("", "")           , makeApp "write-line" [Boolean True])
-          , (Right (List [], []), ("", "true\n"))
-          )
-        , ( []
-          , (("1", "")                , makeApp "read" [])
-          , (Right (StringLit "1", []), ("", ""))
-          )
-        , ( []
-          , (("some-line\nanother-line", "")  , makeApp "read-line" [])
-          , (Right (StringLit "some-line", []), ("another-line", ""))
-          )
-        ]
-
-    forM_ testSuite $ \(env, (s, input), result) ->
-      it (printf "should eval %s to %s" (show (s, input)) (show result)) $ do
-        runResultState s env (eval input) `shouldBe` result

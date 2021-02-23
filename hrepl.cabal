@@ -70,6 +70,7 @@ test-suite test
       Lisp.Lib
       Lisp.Specs.CoreSpec
       Lisp.Specs.Eval.BuiltinSpec
+      Lisp.Specs.Eval.IOPrimitivesSpec
       Lisp.Specs.Eval.PrimitivesSpec
       Lisp.Specs.Eval.RenamerSpec
       Lisp.Specs.ParserSpec
